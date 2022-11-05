@@ -1,0 +1,37 @@
+[
+  {
+    "command": ["npm", "run", "start.elm-land"],
+    "title": "Elm Land - https://localhost:1234",
+    "defaultStatus": ["🌈", "🌈"]
+  },
+  {
+    "command": ["npm", "run", "docs"],
+    "title": "Docs - https://localhost:4000",
+    "defaultStatus": ["🗃️", "🗃️"]
+  },
+  {
+    "command": ["npm", "run", "test.watch"],
+    "title": "Tests",
+    "defaultStatus": ["✅", "✅"],
+    "status": {
+      "TEST RUN PASSED": ["✅", "✅"],
+      "TEST RUN FAILED": ["🚨", "🚨"],
+      "TEST RUN INCOMPLETE": ["🏗️", "🏗️"],
+      "-- [A-Z, ]* ----": ["⚠️", "⚠️"]
+    }
+  },
+  {
+    "command": ["npm", "run", "lint.watch"],
+    "title": "Elm Review",
+    "defaultStatus": ["⭐", "⭐"],
+    "status": {
+      "I found no errors!": ["⭐", "⭐"],
+      "ELM-REVIEW ERROR": ["🚨", "🚨"]
+    }
+  },
+  {
+    "command": ["npm", "run", "start.tailwind"],
+    "title": "Tailwind CSS",
+    "defaultStatus": ["🌀", "🌀"]
+  }
+]

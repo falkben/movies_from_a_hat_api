@@ -1,0 +1,6 @@
+{
+  "name": "movies-from-a-hat/ui",
+  "summary": "Shows you what came out of the hat",
+  "version": "1.0.0",
+  "exposed-modules": ["Shared", "Auth"]
+}
