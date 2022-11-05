@@ -9,7 +9,7 @@ simplifies writing single page apps in Elm by generating glue code for you.
 
 ### Tailwind CSS
 
-[Tailwind](https://tailwindcss.com) is a CSS development framework based on 
+[Tailwind](https://tailwindcss.com) is a CSS development framework based on
 utility classes. It generates CSS from the view source code, so we're guaranteed
 never to have old, unused CSS hanging around
 
