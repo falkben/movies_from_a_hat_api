@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "docs": "elm-doc-preview --no-browser --port 4000",
+    "lint": "elm-review",
+    "lint.watch": "elm-review --watch",
+    "start": "run-pty start.json",
+    "start.elm-land": "elm-land server",
+    "start.tailwind": "tailwind -i ./style/style.css -o ./static/tw.css --watch",
+    "test": "elm-test",
+    "test.watch": "elm-test --watch"
+  },
+  "devDependencies": {
+    "elm-doc-preview": "^5.0.5",
+    "elm-land": "^0.17.3",
+    "elm-review": "^2.7.6",
+    "elm-test": "^0.19.1-revision10",
+    "prettier": "^2.7.1",
+    "run-pty": "^4.0.3",
+    "tailwindcss": "^3.2.1"
+  }
+}
