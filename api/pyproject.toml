@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "movies_from_a_hat"
 version = "0.0.1"
 authors = [
-  { name="Benjamin Falk", email="falk.ben@gmail.com" },
+  {name = "Benjamin Falk", email = "falk.ben@gmail.com"},
 ]
 description = "Movies from a Hat"
 readme = "README.md"
@@ -17,9 +17,19 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+  "fastapi",
+  "uvicorn[standard]",
+  "sqlmodel",
+  "python-dotenv",
+  "alembic",
+  "loguru",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest",
+  "pytest",
+  "pytest-asyncio",
 ]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto" # https://github.com/pytest-dev/pytest-asyncio#auto-mode
