@@ -1,43 +1,22 @@
-# Movies From A Hat API
+# Movies From A Hat
 
-Movies from a Hat API Endpois
+Tool to select a random movie to watch.
 
-## Install
+## Related Project
 
-1. Create virtual environment and activate:
+The [prior project](https://github.com/MoviesFromAHat/MoviesFromAHat.github.io/) uses a static list of movies uploaded as data to it's GitHub repo, and generates a static site to choose movies from.
 
-    `python -m venv .venv && source .venv/bin/activate`
+This project endeavors to be more dynamic, by utilizing a database to allow for users to:
 
-2. Install package
+- easily modify the movie list
+- form user groups
+- create custom sets of movies to choose from
+- come up with their own rules for movie inclusion
 
-    `pip install -e . -r requirements.txt`
+## Frontend
 
-    Or with optional dev dependencies:
+[README](ui/README.md)
 
-    `pip install -e ".[dev]" -r requirements.txt -r requirements_dev.txt`
+## Backend
 
-## Developer Notes
-
-### Manage Dependencies
-
-Dependencies are specified in `pyproject.toml` and managed with [pip-tools](https://github.com/jazzband/pip-tools/).
-
-1. Install `pip-tools` (globally with [pipx](https://github.com/pypa/pipx) or in local virtual environment with pip)
-
-2. Generate lock files:
-
-    _base_
-
-    ```sh
-    pip-compile -o requirements.txt pyproject.toml
-    ```
-
-    _dev_
-
-    ```sh
-    pip-compile --extra dev -o requirements_dev.txt pyproject.toml
-    ```
-
-To upgrade a dependency, pass the `--upgrade-package` flag along with the name of the package, or to upgrade all packages, pass the `--upgrade` flag to the command.
-
-More information at: <https://github.com/jazzband/pip-tools/>
+[README](api/README.md)
