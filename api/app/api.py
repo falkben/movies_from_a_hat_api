@@ -6,7 +6,7 @@ from app import tables
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session, SQLModel, create_engine, select
 
-sqlite_file_name = "database.db"
+sqlite_file_name = "database.sqlite"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 connect_args = {"check_same_thread": False}
