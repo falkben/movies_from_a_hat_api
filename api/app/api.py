@@ -2,6 +2,7 @@
 
 from typing import List
 
+import sqlalchemy.exc
 from app import tables
 from fastapi import Depends, FastAPI, HTTPException
 from sqlmodel import Session, SQLModel, create_engine, select
@@ -24,6 +25,17 @@ def get_or_create(session: Session, model, **kwargs):
         session.add(instance)
         session.flush()
         return instance
+
+
+# todo: refactor to db helpers
+def commit(session: Session):
+    try:
+        session.commit()
+    except sqlalchemy.exc.StatementError:
+        raise HTTPException(
+            422,
+            detail="StatementError occurred, check params. Possible uniqueness constraint failed.",
+        )
 
 
 def create_db_and_tables():
@@ -56,7 +68,7 @@ def create_movie(movie: tables.MovieCreate, session: Session = Depends(get_sessi
     db_movie.genres = db_genres
 
     session.add(db_movie)
-    session.commit()
+    commit(session)
     session.refresh(db_movie)
 
     return db_movie
@@ -97,9 +109,16 @@ def update_movie(
         db_movie.genres = db_genres
 
     session.add(db_movie)
-    session.commit()
+    commit(session)
     session.refresh(db_movie)
     return db_movie
 
 
-# todo: delete
+@app.delete("/movie/{movie_id}")
+def delete_movie(movie_id: int, session: Session = Depends(get_session)):
+    movie = session.get(tables.Movie, movie_id)
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+    session.delete(movie)
+    commit(session)
+    return {"ok": True}

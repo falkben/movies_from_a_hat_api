@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime
+from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -23,7 +23,6 @@ class Genre(SQLModel, table=True):
 
 class MovieBase(SQLModel):
     title: str = Field(default=..., index=True)
-    # todo: add "gt" constraint on database
     year: int = Field(default=..., index=True, gt=1878)
     runtime: int = Field(default=..., index=True)
     url: str | None = Field(default=None, description="imdb url")
@@ -33,7 +32,15 @@ class MovieBase(SQLModel):
 
 
 class Movie(MovieBase, table=True):
+    # require movies to be unique on year and title
+    __table_args__ = (UniqueConstraint("year", "title", name="_year_title_uc"),)
+
+    # note: sqlite will use the next largest available integer on inserts
+    # meaning that primary keys can be re-used from previously deleted rows
+    # https://sqlite.org/autoinc.html
     id: int | None = Field(default=None, primary_key=True)
+    # CheckConstraint enforces this at the database level https://docs.sqlalchemy.org/en/14/core/constraints.html#check-constraint
+    year: int = Field(default=..., sa_column_args=[CheckConstraint("year>1878")])
     created_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
