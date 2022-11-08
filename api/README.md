@@ -14,6 +14,12 @@
 
     `pip install -e ".[dev]" -r requirements.txt -r requirements_dev.txt`
 
+## Run
+
+```sh
+uvicorn app.api:app --reload
+```
+
 ## Developer Notes
 
 ### Manage Dependencies
