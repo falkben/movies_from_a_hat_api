@@ -2,40 +2,18 @@
 
 from typing import List
 
-import sqlalchemy.exc
-from app import tables
 from fastapi import Depends, FastAPI, HTTPException
+from loguru import logger
 from sqlmodel import Session, SQLModel, create_engine, select
+
+from app import tables
+from app.db_helpers import commit, get_or_create
 
 sqlite_file_name = "database.sqlite"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
 
 connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
-
-
-# todo: refactor to db helpers
-# todo: add correct types for model
-def get_or_create(session: Session, model, **kwargs):
-    instance = session.query(model).filter_by(**kwargs).first()
-    if instance:
-        return instance
-    else:
-        instance = model(**kwargs)
-        session.add(instance)
-        session.flush()
-        return instance
-
-
-# todo: refactor to db helpers
-def commit(session: Session):
-    try:
-        session.commit()
-    except sqlalchemy.exc.StatementError:
-        raise HTTPException(
-            422,
-            detail="StatementError occurred, check params. Possible uniqueness constraint failed.",
-        )
+engine = create_engine(sqlite_url, echo=False, connect_args=connect_args)
 
 
 def create_db_and_tables():
@@ -70,6 +48,8 @@ def create_movie(movie: tables.MovieCreate, session: Session = Depends(get_sessi
     session.add(db_movie)
     commit(session)
     session.refresh(db_movie)
+
+    logger.info(f"Created movie: {db_movie.dict()}")
 
     return db_movie
 
@@ -111,6 +91,8 @@ def update_movie(
     session.add(db_movie)
     commit(session)
     session.refresh(db_movie)
+
+    logger.info(f"Updated movie: {db_movie.dict()}")
     return db_movie
 
 
@@ -121,4 +103,6 @@ def delete_movie(movie_id: int, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Movie not found")
     session.delete(movie)
     commit(session)
+
+    logger.info(f"Deleted movie: {movie.dict()}")
     return {"ok": True}
