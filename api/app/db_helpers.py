@@ -2,10 +2,10 @@ import sqlalchemy.exc
 from fastapi import HTTPException
 from loguru import logger
 from sqlmodel import Session
+from sqlmodel.main import SQLModelMetaclass
 
 
-# todo: add correct types for model
-def get_or_create(session: Session, model, **kwargs):
+def get_or_create(session: Session, model: SQLModelMetaclass, **kwargs):
     instance = session.query(model).filter_by(**kwargs).first()
     if instance:
         return instance

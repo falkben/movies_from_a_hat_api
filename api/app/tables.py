@@ -24,9 +24,9 @@ class Genre(SQLModel, table=True):
 class MovieBase(SQLModel):
     title: str = Field(default=..., index=True)
     year: int = Field(default=..., index=True, gt=1878)
-    runtime: int = Field(default=..., index=True)
+    runtime: int = Field(default=None, index=True)
     url: str | None = Field(default=None, description="imdb url")
-    img: str | None = Field(default=None, description="url to image")
+    poster: str | None = Field(default=None, description="movie poster")
     rating: str | None = Field(default=None, description="MPAA rating")
     nsfw: bool = False
 
@@ -54,10 +54,6 @@ class Movie(MovieBase, table=True):
     # todo: created_by (user)
 
 
-class MovieCreate(MovieBase):
-    genres: list[str] = []
-
-
 class MovieRead(MovieBase):
     id: int
     created_at: datetime
@@ -66,6 +62,10 @@ class MovieRead(MovieBase):
 
 
 class MovieUpdate(MovieBase):
+    """used when updating movie data
+
+    convenient to use this model, even though we accept Form data"""
+
     title: str | None = None
     year: int | None = Field(default=None, gt=1878)
     runtime: int | None = None

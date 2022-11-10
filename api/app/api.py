@@ -2,7 +2,7 @@
 
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
 from loguru import logger
 from sqlmodel import Session, SQLModel, create_engine, select
 
@@ -33,11 +33,49 @@ def on_startup():
     create_db_and_tables()
 
 
-@app.post("/movie/", response_model=tables.MovieRead)
-def create_movie(movie: tables.MovieCreate, session: Session = Depends(get_session)):
+def handle_poster_submission(poster_file: UploadFile | None) -> str | None:
+    if poster_file is None:
+        return None
 
-    genres = movie.genres
-    db_movie = tables.Movie.from_orm(movie)
+    # todo: if poster image submitted, handle the poster file:
+    # todo: resize poster image as needed
+    # todo: convert to jpeg
+    # todo: save poster image to disk, with unique name
+    # todo: get the poster image url and store in poster_url
+
+    poster_url = "/static/path/poster_img.jpg"
+    return poster_url
+
+
+# todo: admin only?
+@app.post("/movie/", response_model=tables.MovieRead)
+def create_movie(
+    title: str = Form(default=...),
+    year: int = Form(default=..., gt=1878),
+    runtime: int = Form(default=None, index=True),
+    url: str | None = Form(default=None, description="imdb url"),
+    poster: UploadFile | None = File(None, description="Movie poster"),
+    rating: str | None = Form(default=None, description="MPAA rating"),
+    nsfw: bool = Form(default=False),
+    genres: list[str] = Form(default=[]),
+    session: Session = Depends(get_session),
+):
+    """With a single API request, get all data to create a movie
+
+    Note: cumbersome to do manually
+    """
+
+    poster_url = handle_poster_submission(poster)
+
+    db_movie = tables.Movie(
+        title=title,
+        year=year,
+        runtime=runtime,
+        url=url,
+        poster=poster_url,
+        rating=rating,
+        nsfw=nsfw,
+    )  # pyright: ignore [reportGeneralTypeIssues]
 
     # adding genres to movie
     db_genres = []
@@ -68,16 +106,37 @@ def read_movie(movie_id: int, session: Session = Depends(get_session)):
     return movie
 
 
+# todo: admin only?
 @app.patch("/movie/{movie_id}", response_model=tables.MovieRead)
 def update_movie(
-    movie_id: int, movie: tables.MovieUpdate, session: Session = Depends(get_session)
+    movie_id: int,
+    title: str | None = Form(default=None),
+    year: int | None = Form(default=None, gt=1878),
+    runtime: int | None = Form(default=None, index=True),
+    url: str | None = Form(default=None, description="imdb url"),
+    poster: UploadFile | None = File(None, description="Movie poster"),
+    rating: str | None = Form(default=None, description="MPAA rating"),
+    nsfw: bool | None = Form(default=None),
+    genres: list[str] | None = Form(default=None),
+    session: Session = Depends(get_session),
 ):
 
     db_movie = session.get(tables.Movie, movie_id)
     if not db_movie:
         raise HTTPException(status_code=404, detail="Movie not found")
-    movie_data = movie.dict(exclude_unset=True)
-    genres = movie_data.pop("genres", None)
+
+    poster_url = handle_poster_submission(poster)
+
+    movie = tables.MovieUpdate(
+        title=title,
+        year=year,
+        runtime=runtime,
+        url=url,
+        poster=poster_url,
+        rating=rating,
+        nsfw=nsfw,
+    )
+    movie_data = movie.dict(exclude_defaults=True)
     for key, value in movie_data.items():
         setattr(db_movie, key, value)
 
