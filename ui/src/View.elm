@@ -13,8 +13,8 @@ module View exposing
 -}
 
 import Browser
-import Html exposing (div)
-import Html.Attributes exposing (class)
+import Html
+import Ui
 
 
 type alias View msg =
@@ -27,7 +27,7 @@ so it works with Elm's expected `Browser.Document msg` type.
 toBrowserDocument : View msg -> Browser.Document msg
 toBrowserDocument view =
     { title = view.title
-    , body = [ div [ class "bg-gray text-white h-full" ] view.body ]
+    , body = [ Ui.column [ Ui.style.default ] view.body ]
     }
 
 

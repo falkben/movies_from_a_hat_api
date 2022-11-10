@@ -19,7 +19,9 @@ authentication to render. Pages that require authn can be identified by the
 fact that they take this type as the first argument to their `page` function.
 -}
 type alias User =
-    { token : String }
+    { name : String
+    , token : String
+    }
 
 
 {-| Runs when the user vistis a page requiring authentication. The value
@@ -32,8 +34,8 @@ returned from this will determine what the app does. Broadly speaking it can:
 -}
 onPageLoad : Shared.Model -> Route () -> Auth.Action.Action User
 onPageLoad _ _ =
-    Auth.Action.pushRoute
-        { path = Route.Path.NotFound_
+    Auth.Action.replaceRoute
+        { path = Route.Path.SignIn
         , query = Dict.empty
         , hash = Nothing
         }
