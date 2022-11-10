@@ -1,13 +1,27 @@
 """Main entrypoint"""
 
+from datetime import date
 from typing import List
 
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+import httpx
+from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from loguru import logger
+from pydantic import BaseModel, BaseSettings, Field
 from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import tables
 from app.db_helpers import commit, get_or_create
+
+
+class Settings(BaseSettings):
+    tmdb_api_key: str = Field(..., env="TMDB_API_TOKEN")
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = "utf-8"
+
+
+settings = Settings()
 
 sqlite_file_name = "database.sqlite"
 sqlite_url = f"sqlite:///{sqlite_file_name}"
@@ -45,6 +59,37 @@ def handle_poster_submission(poster_file: UploadFile | None) -> str | None:
 
     poster_url = "/static/path/poster_img.jpg"
     return poster_url
+
+
+class TMDBResult(BaseModel):
+    id: int | None
+    title: str | None
+    overview: str | None
+    release_date: date | str | None
+    poster_path: str | None
+    genre_ids: list[int]
+
+
+@app.get("/search_movies/", response_model=list[TMDBResult])
+async def search_movies(
+    query: str = Query(..., description="Percent encoded query"),
+    year: int | None = Query(None),
+):
+
+    params = {
+        "api_key": settings.tmdb_api_key,
+        "query": query,
+        "include_adult": False,
+    }
+    if year is not None:
+        params["year"] = year
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(
+            "https://api.themoviedb.org/3/search/movie", params=params
+        )
+
+    return resp.json()["results"]
 
 
 # todo: admin only?
