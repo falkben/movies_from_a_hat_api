@@ -1,7 +1,6 @@
 """Main entrypoint"""
 
 from datetime import date
-from typing import List
 
 import httpx
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
@@ -137,7 +136,7 @@ def create_movie(
     return db_movie
 
 
-@app.get("/movies/", response_model=List[tables.MovieRead])
+@app.get("/movies/", response_model=list[tables.MovieRead])
 def list_movies(session: Session = Depends(get_session)):
     movies = session.exec(select(tables.Movie)).all()
     return movies
