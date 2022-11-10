@@ -8,22 +8,35 @@ alembic==1.8.1
     # via movies_from_a_hat (pyproject.toml)
 anyio==3.6.2
     # via
+    #   httpcore
     #   starlette
     #   watchfiles
 attrs==22.1.0
     # via pytest
+certifi==2022.9.24
+    # via
+    #   httpcore
+    #   httpx
 click==8.1.3
     # via uvicorn
 fastapi==0.86.0
     # via movies_from_a_hat (pyproject.toml)
 greenlet==2.0.1
     # via sqlalchemy
-h11==0.14.0
-    # via uvicorn
+h11==0.12.0
+    # via
+    #   httpcore
+    #   uvicorn
+httpcore==0.15.0
+    # via httpx
 httptools==0.5.0
     # via uvicorn
+httpx==0.23.0
+    # via movies_from_a_hat (pyproject.toml)
 idna==3.4
-    # via anyio
+    # via
+    #   anyio
+    #   rfc3986
 iniconfig==1.1.1
     # via pytest
 loguru==0.6.0
@@ -54,8 +67,13 @@ python-dotenv==0.21.0
     #   uvicorn
 pyyaml==6.0
     # via uvicorn
+rfc3986[idna2008]==1.5.0
+    # via httpx
 sniffio==1.3.0
-    # via anyio
+    # via
+    #   anyio
+    #   httpcore
+    #   httpx
 sqlalchemy==1.4.41
     # via
     #   alembic

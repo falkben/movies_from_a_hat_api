@@ -23,6 +23,7 @@ dependencies = [
   "python-dotenv",
   "alembic",
   "loguru",
+  "httpx",
 ]
 
 [project.optional-dependencies]
