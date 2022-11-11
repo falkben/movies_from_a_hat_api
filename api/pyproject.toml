@@ -25,6 +25,7 @@ dependencies = [
   "loguru",
   "httpx",
   "python-multipart",  # parse form data
+  "aiosqlite",
 ]
 
 [project.optional-dependencies]

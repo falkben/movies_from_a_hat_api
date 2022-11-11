@@ -4,6 +4,8 @@
 #
 #    pip-compile --extra=dev --output-file=requirements_dev.txt pyproject.toml
 #
+aiosqlite==0.17.0
+    # via movies_from_a_hat (pyproject.toml)
 alembic==1.8.1
     # via movies_from_a_hat (pyproject.toml)
 anyio==3.6.2
@@ -92,6 +94,7 @@ starlette==0.20.4
     # via fastapi
 typing-extensions==4.4.0
     # via
+    #   aiosqlite
     #   pydantic
     #   sqlalchemy2-stubs
 urllib3==1.26.12

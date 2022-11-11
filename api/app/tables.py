@@ -17,7 +17,9 @@ class Genre(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
     movies: list["Movie"] = Relationship(
-        back_populates="genres", link_model=GenreMovieLink
+        back_populates="genres",
+        link_model=GenreMovieLink,
+        sa_relationship_kwargs={"lazy": "joined"},
     )
 
 
@@ -49,7 +51,9 @@ class Movie(MovieBase, table=True):
     )
     # todo: cascade on delete (sa_relationship_kwargs)
     genres: list[Genre] = Relationship(
-        back_populates="movies", link_model=GenreMovieLink
+        back_populates="movies",
+        link_model=GenreMovieLink,
+        sa_relationship_kwargs={"lazy": "joined"},
     )
     # todo: created_by (user)
 
