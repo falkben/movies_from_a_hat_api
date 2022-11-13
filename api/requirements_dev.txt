@@ -69,12 +69,16 @@ python-dotenv==0.21.0
     # via
     #   movies_from_a_hat (pyproject.toml)
     #   uvicorn
+python-multipart==0.0.5
+    # via movies_from_a_hat (pyproject.toml)
 pyyaml==6.0
     # via uvicorn
 requests==2.28.1
     # via movies_from_a_hat (pyproject.toml)
 rfc3986[idna2008]==1.5.0
     # via httpx
+six==1.16.0
+    # via python-multipart
 sniffio==1.3.0
     # via
     #   anyio
