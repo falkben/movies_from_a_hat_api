@@ -17,6 +17,9 @@ certifi==2022.9.24
     # via
     #   httpcore
     #   httpx
+    #   requests
+charset-normalizer==2.1.1
+    # via requests
 click==8.1.3
     # via uvicorn
 fastapi==0.86.0
@@ -36,6 +39,7 @@ httpx==0.23.0
 idna==3.4
     # via
     #   anyio
+    #   requests
     #   rfc3986
 iniconfig==1.1.1
     # via pytest
@@ -67,6 +71,8 @@ python-dotenv==0.21.0
     #   uvicorn
 pyyaml==6.0
     # via uvicorn
+requests==2.28.1
+    # via movies_from_a_hat (pyproject.toml)
 rfc3986[idna2008]==1.5.0
     # via httpx
 sniffio==1.3.0
@@ -88,6 +94,8 @@ typing-extensions==4.4.0
     # via
     #   pydantic
     #   sqlalchemy2-stubs
+urllib3==1.26.12
+    # via requests
 uvicorn[standard]==0.19.0
     # via movies_from_a_hat (pyproject.toml)
 uvloop==0.17.0

@@ -30,6 +30,7 @@ dependencies = [
 dev = [
   "pytest",
   "pytest-asyncio",
+  "requests",
 ]
 
 [tool.pytest.ini_options]
