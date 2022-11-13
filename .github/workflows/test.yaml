@@ -19,10 +19,8 @@ jobs:
           cache-dependency-path: "**/requirements*.txt"
 
       - name: Install dependencies
-        working-directory: ./api
         run: |
-          pip install ".[dev]" -r requirements.txt -r requirements_dev.txt
+          pip install "api[dev]" -r api/requirements.txt -r api/requirements_dev.txt
 
       - name: pytest
-        working-directory: ./api
         run: pytest

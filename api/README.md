@@ -4,15 +4,19 @@
 
 1. Create virtual environment and activate:
 
-    `python -m venv .venv && source .venv/bin/activate`
+    ```sh
+    python -m venv .venv \
+    && source .venv/bin/activate \
+    && pip install -U pip wheel
+    ```
 
 2. Install package
 
-    `pip install -e . -r requirements.txt`
+    `pip install -e api -r api/requirements.txt`
 
     Or with optional dev dependencies:
 
-    `pip install -e ".[dev]" -r requirements.txt -r requirements_dev.txt`
+    `pip install -e "api[dev]" -r api/requirements.txt -r api/requirements_dev.txt`
 
 ## API Key for TMDB
 
@@ -37,12 +41,15 @@ uvicorn app.api:app --reload
 
 Dependencies are specified in `pyproject.toml` and managed with [pip-tools](https://github.com/jazzband/pip-tools/).
 
-1. Install `pip-tools` (globally with [pipx](https://github.com/pypa/pipx) or in local virtual environment with pip)
+1. Install `pip-tools` (globally with [pipx](https://github.com/pypa/pipx) or in local virtual environment with `pip`)
 
 2. Generate lock files:
 
     ```sh
-    pip-compile --output-file=requirements.txt pyproject.toml --quiet && pip-compile --extra=dev --output-file=requirements_dev.txt pyproject.toml --quiet
+    cd api \
+    && pip-compile --output-file=requirements.txt pyproject.toml --quiet \
+    && pip-compile --extra=dev --output-file=requirements_dev.txt pyproject.toml --quiet \
+    && cd ..
     ```
 
 To upgrade a dependency, pass the `--upgrade-package` flag along with the name of the package, or to upgrade all packages, pass the `--upgrade` flag to the command.

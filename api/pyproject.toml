@@ -24,6 +24,7 @@ dependencies = [
   "alembic",
   "loguru",
   "httpx",
+  "python-multipart",  # parse form data
 ]
 
 [project.optional-dependencies]
@@ -31,7 +32,6 @@ dev = [
   "pytest",
   "pytest-asyncio",
   "requests",
-  "python-multipart",  # parse forms in test requests
 ]
 
 [tool.pytest.ini_options]
