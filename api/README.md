@@ -55,3 +55,15 @@ Dependencies are specified in `pyproject.toml` and managed with [pip-tools](http
 To upgrade a dependency, pass the `--upgrade-package` flag along with the name of the package, or to upgrade all packages, pass the `--upgrade` flag to the command.
 
 More information at: <https://github.com/jazzband/pip-tools/>
+
+### VSCode Config
+
+Since our python app is in `api/` directory, `isort` has trouble finding it.
+
+Pass the `src` config into the isort arguments.
+
+```json
+{
+  "isort.args": ["--profile", "black", "--src", "api"]
+}
+```
