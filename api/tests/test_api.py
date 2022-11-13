@@ -8,10 +8,6 @@ from app.tables import Movie
 big_lebowski = {"title": "The Big Lebowski", "year": 1998, "runtime": 117}
 
 
-def test_api_import():
-    import app  # noqa: F401
-
-
 def test_create_movie(client: TestClient):
     # takes FORM data
     resp = client.post("/movie/", data=big_lebowski)
@@ -83,6 +79,12 @@ def test_delete_movie(session: Session, client: TestClient):
     assert movie_in_db is None
 
 
+# def test_search_movies(client: TestClient):
+#     resp = client.get("/search_movies/", params={"query": "big"})
+#     assert resp.status_code == 200
+
+
+# todo: test movies with genres
 # todo: test search movies on TMDB w/ mocked response
 # todo: test two movies with the same title can be added
 # todo: test that title is required
