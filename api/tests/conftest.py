@@ -6,6 +6,11 @@ from sqlmodel.pool import StaticPool
 from app.api import app, get_session
 
 
+@pytest.fixture(autouse=True)
+def monkeypatch_settings_env_vars(monkeypatch):
+    monkeypatch.setenv("TMDB_API_TOKEN", "TESTING")
+
+
 @pytest.fixture(name="session")
 def session_fixture():
     engine = create_engine(

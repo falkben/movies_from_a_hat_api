@@ -83,5 +83,6 @@ def test_delete_movie(session: Session, client: TestClient):
     assert movie_in_db is None
 
 
+# todo: test search movies on TMDB w/ mocked response
 # todo: test two movies with the same title can be added
 # todo: test that title is required

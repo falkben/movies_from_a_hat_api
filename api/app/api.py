@@ -1,34 +1,23 @@
 """Main entrypoint"""
 
 from datetime import date
+from functools import lru_cache
 
 import httpx
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from loguru import logger
-from pydantic import BaseModel, BaseSettings, Field
+from pydantic import BaseModel
 from sqlmodel import Session, SQLModel, create_engine, select
 
-from app import tables
+from app import config, tables
 from app.db_helpers import commit, get_or_create
 
-
-class Settings(BaseSettings):
-    tmdb_api_key: str = Field(..., env="TMDB_API_TOKEN")
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-
-
-settings = Settings()
-
-sqlite_file_name = "database.sqlite"
-sqlite_url = f"sqlite:///{sqlite_file_name}"
-
+db_conn_str = "sqlite:///database.sqlite"
 connect_args = {"check_same_thread": False}
-engine = create_engine(sqlite_url, echo=False, connect_args=connect_args)
+engine = create_engine(db_conn_str, echo=False, connect_args=connect_args)
 
 
+# todo: replace with Alembic
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
 
@@ -36,6 +25,12 @@ def create_db_and_tables():
 def get_session():
     with Session(engine) as session:
         yield session
+
+
+@lru_cache
+def get_settings():
+    """dependency for returning settings"""
+    return config.Settings()
 
 
 app = FastAPI()
@@ -73,6 +68,7 @@ class TMDBResult(BaseModel):
 async def search_movies(
     query: str = Query(..., description="Percent encoded query"),
     year: int | None = Query(None),
+    settings: config.Settings = Depends(get_settings),
 ):
 
     params = {
@@ -88,6 +84,7 @@ async def search_movies(
             "https://api.themoviedb.org/3/search/movie", params=params
         )
 
+    # todo: error handling
     return resp.json()["results"]
 
 
