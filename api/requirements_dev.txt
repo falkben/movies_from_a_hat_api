@@ -60,10 +60,6 @@ pydantic==1.10.2
 pyparsing==3.0.9
     # via packaging
 pytest==7.2.0
-    # via
-    #   movies_from_a_hat (pyproject.toml)
-    #   pytest-asyncio
-pytest-asyncio==0.20.1
     # via movies_from_a_hat (pyproject.toml)
 python-dotenv==0.21.0
     # via

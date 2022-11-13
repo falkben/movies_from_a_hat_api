@@ -30,12 +30,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest",
-  "pytest-asyncio",
   "requests",
 ]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto" # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 
 [tool.isort]
 profile = "black"
