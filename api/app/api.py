@@ -3,6 +3,7 @@
 from datetime import date
 from functools import lru_cache
 
+import fastapi.openapi.utils
 import httpx
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from loguru import logger
@@ -11,6 +12,11 @@ from sqlmodel import Session, SQLModel, create_engine, select
 
 from app import config, tables
 from app.db_helpers import commit, get_or_create
+from app.patch import get_request_body_with_explode
+
+# monkeypatch to fix swaggerui explode arguments
+fastapi.openapi.utils.get_openapi_operation_request_body = get_request_body_with_explode
+
 
 db_conn_str = "sqlite:///database.sqlite"
 connect_args = {"check_same_thread": False}
