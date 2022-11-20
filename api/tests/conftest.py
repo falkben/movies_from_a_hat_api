@@ -56,6 +56,18 @@ async def client_fixture(session: Session):
     """Create the test client
 
     Overrides the session dependency in our endpoints to use this session instead
+
+    Note that because we create the database tables with a startup event
+    (using create_db_and_tables), this fixture must occur in the parameter list before
+    other database access fixtures.
+
+    E.g. works:
+
+    def my_test_func(client: TestClient, dude_movie: Movie): ...
+
+    Doesn't work, because dude_movie fixture tries to access database tables:
+
+    def my_test_func(dude_movie: Movie, client: TestClient): ...
     """
 
     def get_session_override():

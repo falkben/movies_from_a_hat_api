@@ -204,6 +204,7 @@ async def update_movie(
             db_genres.append(await get_or_create(session, tables.Genre, name=genre))
         db_movie.genres = db_genres
 
+    # todo: avoid add/commit if no data changed
     session.add(db_movie)
     await commit(session)
     await session.refresh(db_movie)
