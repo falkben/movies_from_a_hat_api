@@ -17,13 +17,14 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app import config, tables
 from app.db_helpers import commit, get_or_create
 from app.patch import get_request_body_with_explode
-from app.settings import settings
 
 # monkeypatch to fix swaggerui explode arguments
 fastapi.openapi.utils.get_openapi_operation_request_body = get_request_body_with_explode
 
 
-engine = create_async_engine(settings.database_connection_str, echo=False)
+database_conn_str = "sqlite+aiosqlite:///database.sqlite"
+engine = create_async_engine(database_conn_str, echo=False)
+
 
 # todo: replace with Alembic
 async def create_db_and_tables():
