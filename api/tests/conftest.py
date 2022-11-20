@@ -2,8 +2,11 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import Engine
-from sqlmodel import Session, create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.pool import StaticPool
 
 from app.api import app, get_session
@@ -17,8 +20,10 @@ def monkeypatch_settings_env_vars(monkeypatch):
 @pytest.fixture(name="engine")
 def engine_fixture():
     """create an in memory sqlite database"""
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+    engine = create_async_engine(
+        "sqlite+aiosqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
     )
     # after we switch to alembic instead of app startup event, need to initialize tables
     # from sqlmodel import SQLModel
@@ -35,17 +40,34 @@ def patch_engine(engine: Engine):
 
 
 @pytest.fixture(name="session")
-def session_fixture(engine: Engine):
+async def session_fixture(engine: Engine):
     """This session fixture is used in our tests when we need to access the db"""
-    with Session(engine) as session:
+    async_session_factory = sessionmaker(
+        engine,
+        class_=AsyncSession,  # pyright: ignore [reportGeneralTypeIssues]
+        expire_on_commit=False,
+    )
+    async with async_session_factory() as session:
         yield session
 
 
 @pytest.fixture(name="client")
-def client_fixture(session: Session):
+async def client_fixture(session: Session):
     """Create the test client
 
     Overrides the session dependency in our endpoints to use this session instead
+
+    Note that because we create the database tables with a startup event
+    (using create_db_and_tables), this fixture must occur in the parameter list before
+    other database access fixtures.
+
+    E.g. works:
+
+    def my_test_func(client: TestClient, dude_movie: Movie): ...
+
+    Doesn't work, because dude_movie fixture tries to access database tables:
+
+    def my_test_func(dude_movie: Movie, client: TestClient): ...
     """
 
     def get_session_override():

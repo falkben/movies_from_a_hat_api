@@ -8,7 +8,11 @@ import httpx
 from fastapi import Depends, FastAPI, File, Form, HTTPException, Query, UploadFile
 from loguru import logger
 from pydantic import BaseModel
-from sqlmodel import Session, SQLModel, create_engine, select
+from sqlalchemy.ext.asyncio import create_async_engine
+from sqlalchemy.future import select
+from sqlalchemy.orm import sessionmaker
+from sqlmodel import SQLModel
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app import config, tables
 from app.db_helpers import commit, get_or_create
@@ -18,18 +22,24 @@ from app.patch import get_request_body_with_explode
 fastapi.openapi.utils.get_openapi_operation_request_body = get_request_body_with_explode
 
 
-db_conn_str = "sqlite:///database.sqlite"
-connect_args = {"check_same_thread": False}
-engine = create_engine(db_conn_str, echo=False, connect_args=connect_args)
+database_conn_str = "sqlite+aiosqlite:///database.sqlite"
+engine = create_async_engine(database_conn_str, echo=False)
 
 
 # todo: replace with Alembic
-def create_db_and_tables():
-    SQLModel.metadata.create_all(engine)
+async def create_db_and_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
 
-def get_session():
-    with Session(engine) as session:
+async def get_session():
+    async_session_factory = sessionmaker(
+        engine,
+        class_=AsyncSession,  # pyright: ignore [reportGeneralTypeIssues]
+        expire_on_commit=False,
+    )
+
+    async with async_session_factory() as session:
         yield session
 
 
@@ -43,8 +53,8 @@ app = FastAPI()
 
 
 @app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
+async def on_startup():
+    await create_db_and_tables()
 
 
 def handle_poster_submission(poster_file: UploadFile | None) -> str | None:
@@ -96,7 +106,7 @@ async def search_movies(
 
 # todo: admin only?
 @app.post("/movie/", response_model=tables.MovieRead)
-def create_movie(
+async def create_movie(
     title: str = Form(default=...),
     year: int = Form(default=..., gt=1878),
     runtime: int = Form(default=None, index=True),
@@ -105,7 +115,7 @@ def create_movie(
     rating: str | None = Form(default=None, description="MPAA rating"),
     nsfw: bool = Form(default=False),
     genres: list[str] = Form(default=[]),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
     """With a single API request, get all data to create a movie
 
@@ -127,12 +137,12 @@ def create_movie(
     # adding genres to movie
     db_genres = []
     for genre in genres:
-        db_genres.append(get_or_create(session, tables.Genre, name=genre))
+        db_genres.append(await get_or_create(session, tables.Genre, name=genre))
     db_movie.genres = db_genres
 
     session.add(db_movie)
-    commit(session)
-    session.refresh(db_movie)
+    await commit(session)
+    await session.refresh(db_movie)
 
     logger.info(f"Created movie: {db_movie.dict()}")
 
@@ -140,14 +150,14 @@ def create_movie(
 
 
 @app.get("/movies/", response_model=list[tables.MovieRead])
-def list_movies(session: Session = Depends(get_session)):
-    movies = session.exec(select(tables.Movie)).all()
+async def list_movies(session: AsyncSession = Depends(get_session)):
+    movies = (await session.execute(select(tables.Movie))).scalars().unique().all()
     return movies
 
 
 @app.get("/movie/{movie_id}", response_model=tables.MovieRead)
-def read_movie(movie_id: int, session: Session = Depends(get_session)):
-    movie = session.get(tables.Movie, movie_id)
+async def read_movie(movie_id: int, session: AsyncSession = Depends(get_session)):
+    movie = await session.get(tables.Movie, movie_id)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
     return movie
@@ -155,7 +165,7 @@ def read_movie(movie_id: int, session: Session = Depends(get_session)):
 
 # todo: admin only?
 @app.patch("/movie/{movie_id}", response_model=tables.MovieRead)
-def update_movie(
+async def update_movie(
     movie_id: int,
     title: str | None = Form(default=None),
     year: int | None = Form(default=None, gt=1878),
@@ -165,10 +175,10 @@ def update_movie(
     rating: str | None = Form(default=None, description="MPAA rating"),
     nsfw: bool | None = Form(default=None),
     genres: list[str] | None = Form(default=None),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
 
-    db_movie = session.get(tables.Movie, movie_id)
+    db_movie = await session.get(tables.Movie, movie_id)
     if not db_movie:
         raise HTTPException(status_code=404, detail="Movie not found")
 
@@ -191,24 +201,25 @@ def update_movie(
     if genres is not None:
         db_genres = []
         for genre in genres:
-            db_genres.append(get_or_create(session, tables.Genre, name=genre))
+            db_genres.append(await get_or_create(session, tables.Genre, name=genre))
         db_movie.genres = db_genres
 
+    # todo: avoid add/commit if no data changed
     session.add(db_movie)
-    commit(session)
-    session.refresh(db_movie)
+    await commit(session)
+    await session.refresh(db_movie)
 
     logger.info(f"Updated movie: {db_movie.dict()}")
     return db_movie
 
 
 @app.delete("/movie/{movie_id}")
-def delete_movie(movie_id: int, session: Session = Depends(get_session)):
-    movie = session.get(tables.Movie, movie_id)
+async def delete_movie(movie_id: int, session: AsyncSession = Depends(get_session)):
+    movie = await session.get(tables.Movie, movie_id)
     if not movie:
         raise HTTPException(status_code=404, detail="Movie not found")
-    session.delete(movie)
-    commit(session)
+    await session.delete(movie)
+    await commit(session)
 
     logger.info(f"Deleted movie: {movie.dict()}")
     return {"ok": True}
