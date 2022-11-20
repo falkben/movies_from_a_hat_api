@@ -7,7 +7,7 @@ from sqlmodel.main import SQLModelMetaclass
 
 
 async def get_or_create(session: AsyncSession, model: SQLModelMetaclass, **kwargs):
-    instance = (await session.execute(select(model).filter_by(**kwargs))).first()
+    instance = (await session.scalars(select(model).filter_by(**kwargs))).first()
     if instance:
         return instance
     else:

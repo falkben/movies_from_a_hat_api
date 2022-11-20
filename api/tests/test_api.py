@@ -3,7 +3,7 @@ from datetime import datetime as dt
 from fastapi.testclient import TestClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.tables import Movie
+from app.tables import Genre, Movie
 
 DUDE_DATA = {"title": "The Big Lebowski", "year": 1998, "runtime": 117}
 DUDE_GENRES_DATA = ["comedy", "crime"]
@@ -122,6 +122,7 @@ async def test_read_movie(session: AsyncSession, client: TestClient):
 
 async def test_update_movie(session: AsyncSession, client: TestClient):
     movie = Movie(**DUDE_DATA)
+    movie.genres = [Genre(name=g) for g in DUDE_GENRES_DATA]
     session.add(movie)
     await session.commit()
 
@@ -133,6 +134,16 @@ async def test_update_movie(session: AsyncSession, client: TestClient):
     assert data["runtime"] == DUDE_DATA["runtime"]
     assert data["id"] == movie.id
     assert data["updated_at"] is not None
+
+    # update the genres
+    resp = client.patch(f"/movie/{movie.id}", data={"genres": ["90s"]})
+    assert resp.status_code == 200
+    assert [g["name"] for g in resp.json()["genres"]] == ["90s"]
+
+    # update genres with same data (instead of creating new objects we "get" existing instance)
+    resp = client.patch(f"/movie/{movie.id}", data={"genres": ["90s"]})
+    assert resp.status_code == 200
+    assert [g["name"] for g in resp.json()["genres"]] == ["90s"]
 
 
 async def test_delete_movie(session: AsyncSession, client: TestClient):
