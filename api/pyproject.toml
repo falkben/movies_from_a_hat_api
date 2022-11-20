@@ -31,8 +31,13 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest",
+  "pytest-asyncio",
   "requests",
 ]
+
+[tool.pytest.ini_options]
+# this enables pytest-asyncio automatically for any async test function
+asyncio_mode = "auto" # https://github.com/pytest-dev/pytest-asyncio#auto-mode
 
 [tool.isort]
 profile = "black"

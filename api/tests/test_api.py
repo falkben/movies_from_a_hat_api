@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 
 from fastapi.testclient import TestClient
-from sqlmodel import Session
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.tables import Movie
 
@@ -23,11 +23,13 @@ def test_create_movie(client: TestClient):
     assert data["genres"] == []
 
 
-def test_create_movies_same_title_diff_year(session: Session, client: TestClient):
+async def test_create_movies_same_title_diff_year(
+    session: AsyncSession, client: TestClient
+):
 
     movie = Movie(**DUDE_DATA)
     session.add(movie)
-    session.commit()
+    await session.commit()
 
     resp = client.post("/movie/", data=DUDE_DATA | {"year": 1950})
     data = resp.json()
@@ -41,12 +43,14 @@ def test_create_movies_same_title_diff_year(session: Session, client: TestClient
     assert data["genres"] == []
 
 
-def test_create_movies_same_title_same_year(session: Session, client: TestClient):
+async def test_create_movies_same_title_same_year(
+    session: AsyncSession, client: TestClient
+):
     """Movie title and year is unique"""
 
     movie = Movie(**DUDE_DATA)
     session.add(movie)
-    session.commit()
+    await session.commit()
 
     resp = client.post("/movie/", data=DUDE_DATA)
     assert resp.status_code == 422
@@ -98,11 +102,12 @@ def test_create_movie_invalid(client: TestClient):
     assert resp.status_code == 422
 
 
-def test_read_movie(session: Session, client: TestClient):
+async def test_read_movie(session: AsyncSession, client: TestClient):
 
     movie = Movie(**DUDE_DATA)
     session.add(movie)
-    session.commit()
+    await session.commit()
+    await session.refresh(movie)
 
     resp = client.get(f"/movie/{movie.id}")
     data = resp.json()
@@ -115,10 +120,10 @@ def test_read_movie(session: Session, client: TestClient):
     assert data["updated_at"] is None
 
 
-def test_update_movie(session: Session, client: TestClient):
+async def test_update_movie(session: AsyncSession, client: TestClient):
     movie = Movie(**DUDE_DATA)
     session.add(movie)
-    session.commit()
+    await session.commit()
 
     resp = client.patch(f"/movie/{movie.id}", data={"title": "The Dude"})
     data = resp.json()
@@ -130,15 +135,16 @@ def test_update_movie(session: Session, client: TestClient):
     assert data["updated_at"] is not None
 
 
-def test_delete_movie(session: Session, client: TestClient):
+async def test_delete_movie(session: AsyncSession, client: TestClient):
     movie = Movie(**DUDE_DATA)
     session.add(movie)
-    session.commit()
+    await session.commit()
+    await session.refresh(movie)
 
     resp = client.delete(f"/movie/{movie.id}")
     assert resp.status_code == 200
 
-    movie_in_db = session.get(Movie, movie.id)
+    movie_in_db = await session.get(Movie, movie.id)
     assert movie_in_db is None
 
 
