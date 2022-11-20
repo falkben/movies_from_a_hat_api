@@ -26,4 +26,4 @@ jobs:
           pip install "api[dev]" -r api/requirements.txt -r api/requirements_dev.txt
 
       - name: pytest
-        run: pytest
+        run: pytest api

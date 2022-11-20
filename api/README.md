@@ -67,3 +67,7 @@ Pass the `src` config into the isort arguments.
   "isort.args": ["--profile", "black", "--src", "api"]
 }
 ```
+
+### Testing
+
+`pytest api`
