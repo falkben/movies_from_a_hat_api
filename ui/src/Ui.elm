@@ -3,7 +3,7 @@ module Ui exposing
     , centerContent
     , input, password, button
     , formColumn
-    , style, debug
+    , font, debug
     )
 
 {-| Thiss module contains functions for rendering views in a consistent way. You
@@ -36,9 +36,10 @@ import Html.Attributes exposing (autocomplete, class, type_)
 
 {-| Reusable utility styles
 -}
-style : { default : Attribute msg }
-style =
-    { default = class "bg-gray text-white h-full font-content"
+font : { default : Attribute msg, heading : Attribute msg }
+font =
+    { default = class "bg-gray text-white h-full font-mitr"
+    , heading = class "font-righteous uppercase"
     }
 
 

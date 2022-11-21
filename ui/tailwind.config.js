@@ -19,8 +19,9 @@ module.exports = {
       transparent: "#00000000",
     },
     fontFamily: {
-      heading: ["Rakkas", "sans-serif"],
-      content: ["Vollkorn", "serif"],
+      righteous: ["Righteous", "sans-serif"],
+      josefin: ["Josefin Slab", "serif"],
+      mitr: ["Mitr", "sans-serif"],
     },
     extend: {},
   },
