@@ -1,7 +1,10 @@
 from unittest.mock import patch
 
 import pytest
+import respx
+from faker import Faker
 from fastapi.testclient import TestClient
+from httpx import Response
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import Engine
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +12,7 @@ from sqlmodel import Session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.pool import StaticPool
 
-from app.api import app, get_session
+from app.api import TMDB_URL, app, get_session
 
 
 @pytest.fixture(autouse=True)
@@ -81,3 +84,32 @@ async def client_fixture(session: Session):
         yield client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def mocked_TMDB():
+
+    fake = Faker()
+    fake.set_arguments("title", {"max_nb_chars": 50})
+    fake.set_arguments("overview", {"nb_words": 30})
+    fake.set_arguments("poster", {"text": "???????????????????????????.jpg"})
+    fake_tmdb_json = (
+        '{ "results": '
+        + fake.json(
+            data_columns={
+                "id": "pyint",
+                "title": "text:title",
+                "overview": "sentence:overview",
+                "release_date": "date",
+                "poster_path": "lexify:poster",
+                "genre_ids": ["pyint", "pyint", "pyint"],
+            },
+            num_rows=10,
+        )
+        + "}"
+    )
+
+    with respx.mock(assert_all_called=False) as respx_mock:
+        tmdb_route = respx_mock.get(TMDB_URL, name="search_tmdb_movies")
+        tmdb_route.return_value = Response(200, text=fake_tmdb_json)
+        yield respx_mock

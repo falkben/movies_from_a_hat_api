@@ -22,6 +22,9 @@ from app.patch import get_request_body_with_explode
 fastapi.openapi.utils.get_openapi_operation_request_body = get_request_body_with_explode
 
 
+TMDB_URL = "https://api.themoviedb.org/3/search/movie"
+
+
 database_conn_str = "sqlite+aiosqlite:///database.sqlite"
 engine = create_async_engine(database_conn_str, echo=False)
 
@@ -96,11 +99,23 @@ async def search_movies(
         params["year"] = year
 
     async with httpx.AsyncClient() as client:
-        resp = await client.get(
-            "https://api.themoviedb.org/3/search/movie", params=params
-        )
+        resp = await client.get(TMDB_URL, params=params)
 
-    # todo: error handling
+    if 400 <= resp.status_code < 500:
+        # error in user submission
+        logger.error(
+            "Error from TMDB search. Search: %s, Response: %s", params, resp.text
+        )
+        raise HTTPException(400, "Bad search params")
+
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "Error from TMDB search. Search: %s, Response: %s", params, e.response.text
+        )
+        raise HTTPException(504)
+
     return resp.json()["results"]
 
 
