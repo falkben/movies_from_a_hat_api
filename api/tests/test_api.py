@@ -1,9 +1,11 @@
 from datetime import datetime as dt
 
+import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
+from app.api import TMDB_URL, TMDBResult
 from app.tables import Genre, Movie
 
 DUDE_DATA = {"title": "The Big Lebowski", "year": 1998, "runtime": 117}
@@ -150,8 +152,24 @@ async def test_delete_movie(
     assert movie_in_db is None
 
 
-# todo: test search movies on TMDB w/ mocked response
+def test_search_movies(client: TestClient, mocked_TMDB):
+    resp = client.get("/search_movies/", params={"query": "big"})
+    assert resp.status_code == 200
+    for result_dict in resp.json():
+        TMDBResult.parse_obj(result_dict)
 
-# def test_search_movies(client: TestClient):
-#     resp = client.get("/search_movies/", params={"query": "big"})
-#     assert resp.status_code == 200
+
+def test_search_movies_not_found(client: TestClient, respx_mock):
+    tmdb_route = respx_mock.get(TMDB_URL, name="search_tmdb_movies")
+    tmdb_route.return_value = httpx.Response(404)
+    resp = client.get("/search_movies/", params={"query": "big"})
+    assert resp.status_code == 400
+    assert resp.json() == {"detail": "Bad search params"}
+
+
+def test_search_movies_tmdb_down(client: TestClient, respx_mock):
+    tmdb_route = respx_mock.get(TMDB_URL, name="search_tmdb_movies")
+    tmdb_route.return_value = httpx.Response(500)
+    resp = client.get("/search_movies/", params={"query": "big"})
+    assert resp.status_code == 504
+    assert resp.json() == {"detail": "Gateway Timeout"}

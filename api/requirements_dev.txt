@@ -24,6 +24,8 @@ charset-normalizer==2.1.1
     # via requests
 click==8.1.3
     # via uvicorn
+faker==15.3.2
+    # via movies_from_a_hat (pyproject.toml)
 fastapi==0.86.0
     # via movies_from_a_hat (pyproject.toml)
 greenlet==2.0.1
@@ -37,7 +39,9 @@ httpcore==0.15.0
 httptools==0.5.0
     # via uvicorn
 httpx==0.23.0
-    # via movies_from_a_hat (pyproject.toml)
+    # via
+    #   movies_from_a_hat (pyproject.toml)
+    #   respx
 idna==3.4
     # via
     #   anyio
@@ -67,6 +71,8 @@ pytest==7.2.0
     #   pytest-asyncio
 pytest-asyncio==0.20.2
     # via movies_from_a_hat (pyproject.toml)
+python-dateutil==2.8.2
+    # via faker
 python-dotenv==0.21.0
     # via
     #   movies_from_a_hat (pyproject.toml)
@@ -77,10 +83,14 @@ pyyaml==6.0
     # via uvicorn
 requests==2.28.1
     # via movies_from_a_hat (pyproject.toml)
+respx==0.20.1
+    # via movies_from_a_hat (pyproject.toml)
 rfc3986[idna2008]==1.5.0
     # via httpx
 six==1.16.0
-    # via python-multipart
+    # via
+    #   python-dateutil
+    #   python-multipart
 sniffio==1.3.0
     # via
     #   anyio
