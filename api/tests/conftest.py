@@ -12,7 +12,9 @@ from sqlmodel import Session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.pool import StaticPool
 
-from app.api import TMDB_URL, app, get_session
+from app.api import app
+from app.db import get_session
+from app.movies import TMDB_URL
 
 
 @pytest.fixture(autouse=True)
@@ -38,7 +40,7 @@ def engine_fixture():
 @pytest.fixture(autouse=True)
 def patch_engine(engine: Engine):
     """patch the app engine so that events use this value"""
-    with patch("app.api.engine", engine):
+    with patch("app.db.engine", engine):
         yield
 
 
