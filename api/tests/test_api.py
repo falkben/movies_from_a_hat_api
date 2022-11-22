@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.api import TMDB_URL, TMDBResult
+from app.movies import TMDB_URL, TMDBResult
 from app.tables import Genre, Movie
 
 DUDE_DATA = {"title": "The Big Lebowski", "year": 1998, "runtime": 117}
