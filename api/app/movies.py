@@ -9,7 +9,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app import db, tables
 from app.config import Settings, get_settings
-from app.db_helpers import commit, get_or_create
+from app.db_helpers import commit, get_object_or_404, get_or_create
 
 router = APIRouter()
 
@@ -129,9 +129,7 @@ async def list_movies(session: AsyncSession = Depends(db.get_session)):
 
 @router.get("/movie/{movie_id}", response_model=tables.MovieRead)
 async def read_movie(movie_id: int, session: AsyncSession = Depends(db.get_session)):
-    movie = await session.get(tables.Movie, movie_id)
-    if not movie:
-        raise HTTPException(status_code=404, detail="Movie not found")
+    movie = await get_object_or_404(session, tables.Movie, movie_id)
     return movie
 
 
@@ -150,9 +148,7 @@ async def update_movie(
     session: AsyncSession = Depends(db.get_session),
 ):
 
-    db_movie = await session.get(tables.Movie, movie_id)
-    if not db_movie:
-        raise HTTPException(status_code=404, detail="Movie not found")
+    db_movie = await get_object_or_404(session, tables.Movie, movie_id)
 
     poster_url = handle_poster_submission(poster)
 
@@ -187,9 +183,7 @@ async def update_movie(
 
 @router.delete("/movie/{movie_id}")
 async def delete_movie(movie_id: int, session: AsyncSession = Depends(db.get_session)):
-    movie = await session.get(tables.Movie, movie_id)
-    if not movie:
-        raise HTTPException(status_code=404, detail="Movie not found")
+    movie = await get_object_or_404(session, tables.Movie, movie_id)
     await session.delete(movie)
     await commit(session)
 

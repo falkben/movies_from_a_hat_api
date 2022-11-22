@@ -6,6 +6,13 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.main import SQLModelMetaclass
 
 
+async def get_object_or_404(session: AsyncSession, model: SQLModelMetaclass, id):
+    instance = await session.get(model, id)
+    if not instance:
+        raise HTTPException(status_code=404, detail=f"{model.__name__} not found")
+    return instance
+
+
 async def get_or_create(session: AsyncSession, model: SQLModelMetaclass, **kwargs):
     instance = (await session.scalars(select(model).filter_by(**kwargs))).first()
     if instance:
