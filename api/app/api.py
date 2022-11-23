@@ -1,15 +1,9 @@
 """Main entrypoint"""
 
-import fastapi.openapi.utils
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import db, movies
-from app.patch import get_request_body_with_explode
-
-# monkeypatch to fix swaggerui explode arguments
-fastapi.openapi.utils.get_openapi_operation_request_body = get_request_body_with_explode
-
 
 app = FastAPI()
 

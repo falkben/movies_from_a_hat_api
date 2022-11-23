@@ -1,15 +1,28 @@
-from datetime import datetime as dt
+from datetime import date, datetime
 
 import httpx
 import pytest
 from fastapi.testclient import TestClient
 from sqlmodel.ext.asyncio.session import AsyncSession
 
-from app.movies import TMDB_URL, TMDBResult
-from app.tables import Genre, Movie
+from app import config
+from app.movies import TMDBSearchResult
+from app.tables import Genre, Movie, MovieRead
 
-DUDE_DATA = {"title": "The Big Lebowski", "year": 1998, "runtime": 117}
+DUDE_DATA = {
+    "title": "The Big Lebowski",
+    "release_date": date(1998, 3, 6).strftime("%Y-%m-%d"),
+    "runtime": 117,
+    "tmdb_id": 115,
+    "imdb_id": "tt0118715",
+    "poster": "/gocqX3Y5biEC9SezdqhTXVV2KeT.jpg",
+    "rating": "R",
+    "adult": False,
+}
 DUDE_GENRES_DATA = ["comedy", "crime"]
+
+
+DIFF_DATE = date(1950, 1, 1).strftime("%Y-%m-%d")
 
 
 @pytest.fixture
@@ -24,15 +37,15 @@ async def dude_movie(session: AsyncSession):
 
 def test_create_movie(client: TestClient):
     # takes FORM data
-    resp = client.post("/movie/", data=DUDE_DATA)
+    resp = client.post("/movie/", json={"movie": DUDE_DATA})
     data = resp.json()
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.json()
     assert data["id"] is not None
     assert data["title"] == DUDE_DATA["title"]
-    assert data["year"] == DUDE_DATA["year"]
+    assert data["release_date"] == DUDE_DATA["release_date"]
     assert data["runtime"] == DUDE_DATA["runtime"]
-    assert dt.fromisoformat(data["created_at"]) < dt.utcnow()
+    assert datetime.fromisoformat(data["created_at"]) < datetime.utcnow()
     assert data["genres"] == []
 
 
@@ -40,15 +53,17 @@ async def test_create_movies_same_title_diff_year(
     client: TestClient, dude_movie: Movie
 ):
 
-    resp = client.post("/movie/", data=DUDE_DATA | {"year": 1950})
+    resp = client.post(
+        "/movie/", json={"movie": DUDE_DATA | {"release_date": DIFF_DATE}}
+    )
     data = resp.json()
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.json()
     assert data["id"] is not None
     assert data["title"] == DUDE_DATA["title"]
-    assert data["year"] == 1950
+    assert data["release_date"] == DIFF_DATE
     assert data["runtime"] == DUDE_DATA["runtime"]
-    assert dt.fromisoformat(data["created_at"]) < dt.utcnow()
+    assert datetime.fromisoformat(data["created_at"]) < datetime.utcnow()
     assert data["genres"] == []
 
 
@@ -57,51 +72,57 @@ async def test_create_movies_same_title_same_year(
 ):
     """Movie title and year is unique"""
 
-    resp = client.post("/movie/", data=DUDE_DATA)
+    resp = client.post("/movie/", json={"movie": DUDE_DATA})
     assert resp.status_code == 422
 
 
 def test_create_movie_genres(client: TestClient):
     # takes FORM data
-    resp = client.post("/movie/", data=DUDE_DATA | {"genres": DUDE_GENRES_DATA})
+    resp = client.post(
+        "/movie/", json={"movie": DUDE_DATA} | {"genres": DUDE_GENRES_DATA}
+    )
     data = resp.json()
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.json()
     assert data["id"] is not None
     assert data["title"] == DUDE_DATA["title"]
-    assert data["year"] == DUDE_DATA["year"]
+    assert data["release_date"] == DUDE_DATA["release_date"]
     assert data["runtime"] == DUDE_DATA["runtime"]
-    assert dt.fromisoformat(data["created_at"]) < dt.utcnow()
+    assert datetime.fromisoformat(data["created_at"]) < datetime.utcnow()
     assert [g["name"] for g in data["genres"]] == DUDE_GENRES_DATA
 
 
 def test_create_movie_incomplete(client: TestClient):
-    # no year
-    resp = client.post("/movie/", data={"title": "No year movie"})
+    # no release_date
+    resp = client.post("/movie/", json={"movie": {"title": "No release_date movie"}})
     assert resp.status_code == 422
 
     # no title
-    resp = client.post("/movie/", data={"year": 4444})
+    resp = client.post("/movie/", json={"movie": {"release_date": DIFF_DATE}})
     assert resp.status_code == 422
 
 
 def test_create_movie_invalid(client: TestClient):
-    # year takes an int, not a mapping/dict
+    # release_date takes a formatted date, not a mapping/dict
     resp = client.post(
         "/movie/",
-        data={
-            "title": "Bad year type",
-            "year": {"year": "1998"},
+        json={
+            "movie": {
+                "title": "Bad release_date type",
+                "release_date": {"release_date": "1998"},
+            }
         },
     )
     assert resp.status_code == 422
 
-    # year needs to be convertable to an int
+    # bad release_date
     resp = client.post(
         "/movie/",
-        data={
-            "title": "Bad year value",
-            "year": "5555_three",
+        json={
+            "movie": {
+                "title": "Bad release_date value",
+                "release_date": "5555_three",
+            }
         },
     )
     assert resp.status_code == 422
@@ -114,31 +135,56 @@ async def test_read_movie(client: TestClient, dude_movie: Movie):
 
     assert resp.status_code == 200
     assert data["title"] == DUDE_DATA["title"]
-    assert data["year"] == DUDE_DATA["year"]
+    assert data["release_date"] == DUDE_DATA["release_date"]
     assert data["runtime"] == DUDE_DATA["runtime"]
-    assert dt.fromisoformat(data["created_at"]) < dt.utcnow()
+    assert datetime.fromisoformat(data["created_at"]) < datetime.utcnow()
     assert data["updated_at"] is None
 
 
 async def test_update_movie(client: TestClient, dude_movie: Movie):
-    resp = client.patch(f"/movie/{dude_movie.id}", data={"title": "The Dude"})
+    resp = client.patch(
+        f"/movie/{dude_movie.id}", json={"movie": {"title": "The Dude"}}
+    )
     data = resp.json()
 
-    assert resp.status_code == 200
+    assert resp.status_code == 200, data
     assert data["title"] == "The Dude"
     assert data["runtime"] == DUDE_DATA["runtime"]
     assert data["id"] == dude_movie.id
     assert data["updated_at"] is not None
 
     # update the genres
-    resp = client.patch(f"/movie/{dude_movie.id}", data={"genres": ["90s"]})
-    assert resp.status_code == 200
+    resp = client.patch(f"/movie/{dude_movie.id}", json={"genres": ["90s"]})
+    assert resp.status_code == 200, resp.json()
     assert [g["name"] for g in resp.json()["genres"]] == ["90s"]
 
     # update genres with same data (instead of creating new objects we "get" existing instance)
-    resp = client.patch(f"/movie/{dude_movie.id}", data={"genres": ["90s"]})
-    assert resp.status_code == 200
+    resp = client.patch(f"/movie/{dude_movie.id}", json={"genres": ["90s"]})
+    assert resp.status_code == 200, resp.json()
     assert [g["name"] for g in resp.json()["genres"]] == ["90s"]
+
+
+async def test_update_movie_no_change(client: TestClient, dude_movie: Movie):
+    """Verify that we don't update the movie if no data is patched"""
+    resp = client.patch(f"/movie/{dude_movie.id}", json={})
+
+    data = resp.json()
+    assert resp.status_code == 200, data
+
+    movie_patch = MovieRead(**data)
+    assert movie_patch.created_at == dude_movie.created_at
+    assert movie_patch.updated_at is None
+
+
+async def test_remove_genres(client: TestClient, dude_movie: Movie):
+    resp = client.patch(f"/movie/{dude_movie.id}", json={"genres": []})
+
+    data = resp.json()
+    assert resp.status_code == 200, data
+    # check other data is still there
+    movie_patch = MovieRead(**data)
+    assert movie_patch.title == dude_movie.title
+    assert movie_patch.genres == []
 
 
 async def test_delete_movie(
@@ -152,23 +198,31 @@ async def test_delete_movie(
     assert movie_in_db is None
 
 
-def test_search_movies(client: TestClient, mocked_TMDB):
+def test_search_movies(client: TestClient, mocked_TMDB, mocked_TMDB_config_req):
     resp = client.get("/search_movies/", params={"query": "big"})
-    assert resp.status_code == 200
+    assert resp.status_code == 200, resp.json()
     for result_dict in resp.json():
-        TMDBResult.parse_obj(result_dict)
+        TMDBSearchResult.parse_obj(result_dict)
 
 
-def test_search_movies_not_found(client: TestClient, respx_mock):
-    tmdb_route = respx_mock.get(TMDB_URL, name="search_tmdb_movies")
+def test_search_movies_not_found(
+    client: TestClient, respx_mock, mocked_TMDB_config_req
+):
+    tmdb_route = respx_mock.get(
+        f"{config.TMDB_API_URL}/search/movie", name="search_tmdb_movies"
+    )
     tmdb_route.return_value = httpx.Response(404)
     resp = client.get("/search_movies/", params={"query": "big"})
     assert resp.status_code == 400
     assert resp.json() == {"detail": "Bad search params"}
 
 
-def test_search_movies_tmdb_down(client: TestClient, respx_mock):
-    tmdb_route = respx_mock.get(TMDB_URL, name="search_tmdb_movies")
+def test_search_movies_tmdb_down(
+    client: TestClient, respx_mock, mocked_TMDB_config_req
+):
+    tmdb_route = respx_mock.get(
+        f"{config.TMDB_API_URL}/search/movie", name="search_tmdb_movies"
+    )
     tmdb_route.return_value = httpx.Response(500)
     resp = client.get("/search_movies/", params={"query": "big"})
     assert resp.status_code == 504

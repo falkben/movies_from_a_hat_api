@@ -1,11 +1,20 @@
-from datetime import datetime
+import re
+from datetime import date, datetime
 
+from pydantic import validator
 from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
-# todo User
-# todo: Watched (date) is a M2M with Users and Movies
+# todo: Users
+# todo: Groups (m2m w/ Users if users can belong to many groups)
+# todo: Watched (date) is M2M with Groups & Movies/Users & Movies
+
+# earliest movie (https://www.imdb.com/title/tt2221420/)
+RELEASE_DATE_CONSTR = date(1871, 1, 1)
+
+# regex for date in yyyy-mm-dd format
+re_date_format = re.compile("^([0-9]{4})-?(1[0-2]|0[1-9])-?(3[01]|0[1-9]|[12][0-9])$")
 
 
 class GenreMovieLink(SQLModel, table=True):
@@ -25,24 +34,54 @@ class Genre(SQLModel, table=True):
 
 class MovieBase(SQLModel):
     title: str = Field(default=..., index=True)
-    year: int = Field(default=..., index=True, gt=1878)
-    runtime: int = Field(default=None, index=True)
-    url: str | None = Field(default=None, description="imdb url")
-    poster: str | None = Field(default=None, description="movie poster")
+    release_date: date = Field(default=...)
+    runtime: int | None = Field(default=None, index=True)
+    tmdb_id: int | None = Field(default=None, description="TMDB ID", index=True)
+    imdb_id: str | None = Field(default=None, description="IMBD ID")
+    poster: str | None = Field(default=None, description="TMDB poster path")
+    # note: MPAA rating is under release_dates in TMDB
+    # http://api.themoviedb.org/3/movie/550?api_key=###&append_to_response=release_dates
     rating: str | None = Field(default=None, description="MPAA rating")
-    nsfw: bool = False
+    adult: bool = False
+
+    @validator("release_date", pre=True)
+    def release_date_format(cls, value):
+        if isinstance(value, str):
+            # if it's not a date already validate we are using the right format
+            assert re.match(
+                re_date_format, value
+            ), "release_date must be in YYYY-MM-DD format"
+        return value
+
+    @validator("release_date")
+    def release_date_validation(cls, value):
+        assert (
+            value > RELEASE_DATE_CONSTR
+        ), f"release_date must be greater than {RELEASE_DATE_CONSTR.strftime('%Y-%m-%d')}"
+        return value
 
 
 class Movie(MovieBase, table=True):
-    # require movies to be unique on year and title
-    __table_args__ = (UniqueConstraint("year", "title", name="_year_title_uc"),)
+    # require movies to be unique on release_date and title
+    __table_args__ = (
+        UniqueConstraint("release_date", "title", name="_release_date_title_uc"),
+    )
 
-    # note: sqlite will use the next largest available integer on inserts
-    # meaning that primary keys can be re-used from previously deleted rows
+    # note: sqlite will use the next largest available integer on inserts meaning that
+    # primary keys can be re-used from previously deleted rows
     # https://sqlite.org/autoinc.html
     id: int | None = Field(default=None, primary_key=True)
-    # CheckConstraint enforces this at the database level https://docs.sqlalchemy.org/en/14/core/constraints.html#check-constraint
-    year: int = Field(default=..., sa_column_args=[CheckConstraint("year>1878")])
+    # CheckConstraint enforces at the database level:
+    # https://docs.sqlalchemy.org/en/14/core/constraints.html#check-constraint
+    release_date: date = Field(
+        default=...,
+        sa_column_args=[
+            CheckConstraint(
+                f"release_date > '{RELEASE_DATE_CONSTR.strftime('%Y-%m-%d')}'"
+            )
+        ],
+        index=True,
+    )
     created_at: datetime | None = Field(
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
@@ -58,6 +97,10 @@ class Movie(MovieBase, table=True):
     # todo: created_by (user)
 
 
+class MovieCreate(MovieBase):
+    pass
+
+
 class MovieRead(MovieBase):
     id: int
     created_at: datetime
@@ -71,7 +114,5 @@ class MovieUpdate(MovieBase):
     convenient to use this model, even though we accept Form data"""
 
     title: str | None = None
-    year: int | None = Field(default=None, gt=1878)
-    runtime: int | None = None
-    nsfw: bool | None = None
-    genres: list[str] | None = None
+    release_date: date | None = Field(default=None)
+    adult: bool | None = None
