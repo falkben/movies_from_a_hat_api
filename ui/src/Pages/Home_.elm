@@ -63,8 +63,8 @@ subscriptions _ =
 
 
 view : Auth.User -> Model -> View Msg
-view user _ =
+view _ _ =
     { title = "Movies From A Hat"
     , body =
-        [ text "Hello, ", text user.name, text "!" ]
+        [ text "Hello!" ]
     }

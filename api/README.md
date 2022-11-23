@@ -35,6 +35,8 @@ Edit the file and enter your API token.
 uvicorn app.api:app --reload
 ```
 
+Visit the OpenAPI docs at <https://localhost:8000/docs>
+
 ## Developer Notes
 
 ### Manage Dependencies

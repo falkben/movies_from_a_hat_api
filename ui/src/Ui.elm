@@ -7,7 +7,7 @@ module Ui exposing
     )
 
 {-| Thiss module contains functions for rendering views in a consistent way. You
-can think of it as the root of the design system for the app.
+can think of it as the core of a design system for the app.
 
 
 # Layout
@@ -26,12 +26,13 @@ can think of it as the root of the design system for the app.
 
 # Utilities
 
-@docs style, debug
+@docs font, debug
 
 -}
 
 import Html exposing (Attribute, Html, div, label)
 import Html.Attributes exposing (autocomplete, class, type_)
+import Html.Events exposing (onInput)
 
 
 {-| Reusable utility styles
@@ -92,7 +93,7 @@ input :
     -> Html msg
 input attrs opts =
     label []
-        [ Html.input (type_ "text" :: textInputStyle :: attrs)
+        [ Html.input (type_ "text" :: onInput opts.onInput :: textInputStyle :: attrs)
             []
         , div [ textLabelStyle ] [ opts.label ]
         ]
