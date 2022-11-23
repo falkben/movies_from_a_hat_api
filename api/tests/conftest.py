@@ -12,9 +12,9 @@ from sqlmodel import Session
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel.pool import StaticPool
 
+from app import config
 from app.api import app
 from app.db import get_session
-from app.movies import TMDB_URL
 
 
 @pytest.fixture(autouse=True)
@@ -112,6 +112,31 @@ async def mocked_TMDB():
     )
 
     with respx.mock(assert_all_called=False) as respx_mock:
-        tmdb_route = respx_mock.get(TMDB_URL, name="search_tmdb_movies")
+        tmdb_route = respx_mock.get(
+            f"{config.TMDB_API_URL}/search/movie", name="search_tmdb_movies"
+        )
         tmdb_route.return_value = Response(200, text=fake_tmdb_json)
+        yield respx_mock
+
+
+@pytest.fixture
+async def mocked_TMDB_config_req(respx_mock):
+
+    mocked_tmdb_config_data = {
+        "images": {
+            "base_url": "http://image.tmdb.org/t/p/",
+            "secure_base_url": "https://image.tmdb.org/t/p/",
+            "backdrop_sizes": ["w300", "w780", "w1280", "original"],
+            "logo_sizes": ["w45", "w92", "w154", "w185", "w300", "w500", "original"],
+            "poster_sizes": ["w92", "w154", "w185", "w342", "w500", "w780", "original"],
+            "profile_sizes": ["w45", "w185", "h632", "original"],
+            "still_sizes": ["w92", "w185", "w300", "original"],
+        },
+        # note: there's a list of "change_keys" in the response but we're not using that data
+    }
+    with respx.mock(assert_all_called=False) as respx_mock:
+        respx_mock.get(f"{config.TMDB_API_URL}/configuration").mock(
+            return_value=Response(200, json=mocked_tmdb_config_data)
+        )
+
         yield respx_mock

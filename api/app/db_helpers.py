@@ -37,5 +37,5 @@ async def commit(session: AsyncSession):
         logger.error(f"Exception during session.commit(): {exc}")
         raise HTTPException(
             422,
-            detail="StatementError occurred, check params. Possible uniqueness constraint failed.",
+            detail="Database error occurred, check params.",
         )

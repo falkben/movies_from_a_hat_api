@@ -1,7 +1,7 @@
 from datetime import date
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy.future import select
@@ -14,24 +14,7 @@ from app.db_helpers import commit, get_object_or_404, get_or_create
 router = APIRouter()
 
 
-TMDB_URL = "https://api.themoviedb.org/3/search/movie"
-
-
-def handle_poster_submission(poster_file: UploadFile | None) -> str | None:
-    if poster_file is None:
-        return None
-
-    # todo: if poster image submitted, handle the poster file:
-    # todo: resize poster image as needed
-    # todo: convert to jpeg
-    # todo: save poster image to disk, with unique name
-    # todo: get the poster image url and store in poster_url
-
-    poster_url = "/static/path/poster_img.jpg"
-    return poster_url
-
-
-class TMDBResult(BaseModel):
+class TMDBSearchResult(BaseModel):
     id: int | None
     title: str | None
     overview: str | None
@@ -40,7 +23,7 @@ class TMDBResult(BaseModel):
     genre_ids: list[int]
 
 
-@router.get("/search_movies/", response_model=list[TMDBResult])
+@router.get("/search_movies/", response_model=list[TMDBSearchResult])
 async def search_movies(
     query: str = Query(..., description="Percent encoded query"),
     year: int | None = Query(None),
@@ -56,7 +39,7 @@ async def search_movies(
         params["year"] = year
 
     async with httpx.AsyncClient() as client:
-        resp = await client.get(TMDB_URL, params=params)
+        resp = await client.get(f"{settings.tmdb_api_url}/search/movie", params=params)
 
     if 400 <= resp.status_code < 500:
         # error in user submission
@@ -79,32 +62,16 @@ async def search_movies(
 # todo: admin only?
 @router.post("/movie/", response_model=tables.MovieRead)
 async def create_movie(
-    title: str = Form(default=...),
-    year: int = Form(default=..., gt=1878),
-    runtime: int = Form(default=None, index=True),
-    url: str | None = Form(default=None, description="imdb url"),
-    poster: UploadFile | None = File(None, description="Movie poster"),
-    rating: str | None = Form(default=None, description="MPAA rating"),
-    nsfw: bool = Form(default=False),
-    genres: list[str] = Form(default=[]),
+    movie: tables.MovieCreate,
+    genres: list[str] = Body(default=[]),
     session: AsyncSession = Depends(db.get_session),
 ):
-    """With a single API request, get all data to create a movie
+    """Create a movie by passing params
 
-    Note: cumbersome to do manually
+    Note: we will also support creating movies by passing a TMDB id
     """
 
-    poster_url = handle_poster_submission(poster)
-
-    db_movie = tables.Movie(
-        title=title,
-        year=year,
-        runtime=runtime,
-        url=url,
-        poster=poster_url,
-        rating=rating,
-        nsfw=nsfw,
-    )  # pyright: ignore [reportGeneralTypeIssues]
+    db_movie = tables.Movie.from_orm(movie)
 
     # adding genres to movie
     db_genres = []
@@ -137,33 +104,17 @@ async def read_movie(movie_id: int, session: AsyncSession = Depends(db.get_sessi
 @router.patch("/movie/{movie_id}", response_model=tables.MovieRead)
 async def update_movie(
     movie_id: int,
-    title: str | None = Form(default=None),
-    year: int | None = Form(default=None, gt=1878),
-    runtime: int | None = Form(default=None, index=True),
-    url: str | None = Form(default=None, description="imdb url"),
-    poster: UploadFile | None = File(None, description="Movie poster"),
-    rating: str | None = Form(default=None, description="MPAA rating"),
-    nsfw: bool | None = Form(default=None),
-    genres: list[str] | None = Form(default=None),
+    movie: tables.MovieUpdate | None = None,
+    genres: list[str] | None = Body(default=None),
     session: AsyncSession = Depends(db.get_session),
 ):
 
     db_movie = await get_object_or_404(session, tables.Movie, movie_id)
 
-    poster_url = handle_poster_submission(poster)
-
-    movie = tables.MovieUpdate(
-        title=title,
-        year=year,
-        runtime=runtime,
-        url=url,
-        poster=poster_url,
-        rating=rating,
-        nsfw=nsfw,
-    )
-    movie_data = movie.dict(exclude_defaults=True)
-    for key, value in movie_data.items():
-        setattr(db_movie, key, value)
+    if movie:
+        movie_data = movie.dict(exclude_defaults=True)
+        for key, value in movie_data.items():
+            setattr(db_movie, key, value)
 
     # adding genres to movie
     if genres is not None:
@@ -172,12 +123,13 @@ async def update_movie(
             db_genres.append(await get_or_create(session, tables.Genre, name=genre))
         db_movie.genres = db_genres
 
-    # todo: avoid add/commit if no data changed
-    session.add(db_movie)
-    await commit(session)
-    await session.refresh(db_movie)
+    # best attempt at not updating the movie if no data is actually passed in
+    if movie or genres is not None:
+        session.add(db_movie)
+        await commit(session)
+        await session.refresh(db_movie)
 
-    logger.info(f"Updated movie: {db_movie.dict()}")
+        logger.info(f"Updated movie: {db_movie.dict()}")
     return db_movie
 
 
