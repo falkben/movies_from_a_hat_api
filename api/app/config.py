@@ -1,10 +1,7 @@
 from functools import lru_cache
 
 import httpx
-from dotenv import load_dotenv
 from pydantic import BaseSettings, Field, HttpUrl, validator
-
-load_dotenv()
 
 TMDB_API_URL = "https://api.themoviedb.org/3"
 
