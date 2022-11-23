@@ -13,6 +13,11 @@ DUDE_DATA = {
     "title": "The Big Lebowski",
     "release_date": date(1998, 3, 6).strftime("%Y-%m-%d"),
     "runtime": 117,
+    "tmdb_id": 115,
+    "imdb_id": "tt0118715",
+    "poster": "/gocqX3Y5biEC9SezdqhTXVV2KeT.jpg",
+    "rating": "R",
+    "adult": False,
 }
 DUDE_GENRES_DATA = ["comedy", "crime"]
 

@@ -36,8 +36,9 @@ class MovieBase(SQLModel):
     title: str = Field(default=..., index=True)
     release_date: date = Field(default=...)
     runtime: int | None = Field(default=None, index=True)
-    imdb_id: str | None = Field(default=None, description="imdb_id")
-    poster: str | None = Field(default=None, description="movie poster url")
+    tmdb_id: int | None = Field(default=None, description="TMDB ID")
+    imdb_id: str | None = Field(default=None, description="IMBD ID")
+    poster: str | None = Field(default=None, description="TMDB poster path")
     # note: MPAA rating is under release_dates in TMDB
     # http://api.themoviedb.org/3/movie/550?api_key=###&append_to_response=release_dates
     rating: str | None = Field(default=None, description="MPAA rating")
