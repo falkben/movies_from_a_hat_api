@@ -1,3 +1,5 @@
+import json
+import pathlib
 from unittest.mock import patch
 
 import pytest
@@ -138,5 +140,23 @@ async def mocked_TMDB_config_req(respx_mock):
         respx_mock.get(f"{config.TMDB_API_URL}/configuration").mock(
             return_value=Response(200, json=mocked_tmdb_config_data)
         )
+
+        yield respx_mock
+
+
+@pytest.fixture
+async def mocked_TMDB_movie_results(request, respx_mock):
+    # test data location relative to the test file
+    file = pathlib.Path(request.node.fspath.strpath)
+    movies_data = {
+        "115": json.load(open(file.parent / "test_data" / "115.json")),
+        "550": json.load(open(file.parent / "test_data" / "550.json")),
+    }
+
+    with respx.mock(assert_all_called=False) as respx_mock:
+        for tmdb_id, movie_data in movies_data.items():
+            respx_mock.get(f"{config.TMDB_API_URL}/movie/{tmdb_id}").mock(
+                return_value=Response(200, json=movie_data)
+            )
 
         yield respx_mock

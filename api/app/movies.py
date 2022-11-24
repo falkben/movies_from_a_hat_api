@@ -1,26 +1,30 @@
-from datetime import date
+import asyncio
 
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from loguru import logger
-from pydantic import BaseModel
 from sqlalchemy.future import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app import db, tables
 from app.config import Settings, get_settings
 from app.db_helpers import commit, get_object_or_404, get_or_create
+from app.tmdb_models import ReleaseDates, TMDBMovieResult, TMDBSearchResult
 
 router = APIRouter()
 
 
-class TMDBSearchResult(BaseModel):
-    id: int | None
-    title: str | None
-    overview: str | None
-    release_date: date | str | None
-    poster_path: str | None
-    genre_ids: list[int]
+def get_rating_from_release_dates(release_dates: ReleaseDates) -> str | None:
+    # get the rating from the nested release dates
+
+    for result in release_dates.results:
+        if result.iso_3166_1 != "US":
+            continue
+
+        # most likely the last release has the rating so iterate over list backwards
+        for release in result.release_dates[::-1]:
+            if release.certification:
+                return release.certification
 
 
 @router.get("/search_movies/", response_model=list[TMDBSearchResult])
@@ -57,6 +61,70 @@ async def search_movies(
         raise HTTPException(504)
 
     return resp.json()["results"]
+
+
+@router.post("/movie_from_tmdb/", response_model=list[tables.MovieRead])
+async def create_movie_tmdb_id(
+    tmdb_ids: list[int] = Query([], description="List of tmdb movie ids to create"),
+    settings: Settings = Depends(get_settings),
+    session: AsyncSession = Depends(db.get_session),
+):
+
+    # todo: get movies that have matching tmdb id's from our database
+    stmt = select(tables.Movie).filter(tables.Movie.tmdb_id.in_(tmdb_ids))
+    existing_movies = (await session.scalars(stmt)).unique().all()
+
+    # todo: use a semaphore to avoid overloading the tmdb api
+    # https://rednafi.github.io/reflections/limit-concurrency-with-semaphore-in-python-asyncio.html
+    # https://anyio.readthedocs.io/en/stable/synchronization.html
+
+    # todo: exclude tmdbs which we have data for
+
+    # remaining tmdb id's we need to fetch their data from tmdb
+    async with httpx.AsyncClient() as client:
+        tasks = [
+            client.get(
+                f"{settings.tmdb_api_url}/movie/{tmdb_id}?api_key={settings.tmdb_api_key}&append_to_response=release_dates"
+            )
+            for tmdb_id in tmdb_ids
+        ]
+        # todo: handle exceptions with a task group or anyio
+        results = await asyncio.gather(*tasks)
+
+    # add the missing movies to our database
+    db_movies = []
+    for result in results:
+        result_data = result.json()
+        movie_data = TMDBMovieResult(**result_data)
+
+        release_dates = ReleaseDates(**result_data.get("release_dates"))
+        rating = get_rating_from_release_dates(release_dates)
+
+        # get the keys from data that we need
+        db_movie = tables.Movie(rating=rating, **movie_data.dict())
+
+        # adding genres to movie
+        db_genres = []
+        genres = [g["name"] for g in result_data["genres"]]
+        for genre in genres:
+            # todo: can we do this in a single operation or with task group?
+            db_genres.append(await get_or_create(session, tables.Genre, name=genre))
+        db_movie.genres = db_genres
+
+        # todo: instead of serially, can we add in a single operation or with a task group
+        session.add(db_movie)
+        await commit(session)
+        await session.refresh(db_movie)
+
+        logger.info(f"Created movie: {db_movie.dict()}")
+
+        # add to list of db_movies
+        db_movies.append(db_movie)
+
+    requested_movies = existing_movies + db_movies
+
+    requested_movies.sort(key=lambda m: tmdb_ids.index(m.tmdb_id))
+    return requested_movies
 
 
 # todo: admin only?
