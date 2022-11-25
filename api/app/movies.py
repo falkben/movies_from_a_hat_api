@@ -1,5 +1,3 @@
-import asyncio
-
 import httpx
 from fastapi import APIRouter, Body, Depends, HTTPException, Query
 from loguru import logger
@@ -70,15 +68,20 @@ async def create_movie_from_tmdb(
     release_dates = ReleaseDates(**tmdb_data.get("release_dates"))
     rating = get_rating_from_release_dates(release_dates)
 
-    # get the keys from data that we need
+    # if running with asyncio.gather, each task needs it's own session
+    # ! this still causes problems though as the genres are m2m and shared between movies
+    # https://github.com/sqlalchemy/sqlalchemy/discussions/8554#discussioncomment-3700871
+    # async with db.async_session_factory() as session:
+
+    # create movie instance from response data
     db_movie = tables.Movie(rating=rating, **movie_data.dict())
 
     # adding genres to movie
-    db_genres = []
     genres = [g["name"] for g in tmdb_data["genres"]]
-    for genre in genres:
-        # todo: can we do this in a single operation or with task group?
-        db_genres.append(await get_or_create(session, tables.Genre, name=genre))
+    db_genres = [
+        await get_or_create(session, tables.Genre, name=genre) for genre in genres
+    ]
+
     db_movie.genres = db_genres
 
     session.add(db_movie)
@@ -88,8 +91,8 @@ async def create_movie_from_tmdb(
     return db_movie
 
 
-@router.post("/movie_from_tmdb/", response_model=list[tables.MovieRead])
-async def create_movie_tmdb_id(
+@router.post("/tmdb_movie/", response_model=list[tables.MovieRead])
+async def create_movie_from_tmdb_id_endpoint(
     tmdb_ids: list[int] = Query([], description="List of tmdb movie ids to create"),
     settings: Settings = Depends(get_settings),
     session: AsyncSession = Depends(db.get_session),
@@ -105,13 +108,18 @@ async def create_movie_tmdb_id(
     tmdb_ids_to_create = tmdb_ids_uniq - set([m.tmdb_id for m in existing_movies])
 
     # create movie instances for each tmdb id
-    coros = [
-        create_movie_from_tmdb(
+    # coros = [
+    #     create_movie_from_tmdb(tmdb_id, settings.tmdb_api_url, settings.tmdb_api_key)
+    #     for tmdb_id in tmdb_ids_to_create
+    # ]
+    # db_movies = await asyncio.gather(*coros)
+
+    db_movies = [
+        await create_movie_from_tmdb(
             tmdb_id, settings.tmdb_api_url, settings.tmdb_api_key, session
         )
         for tmdb_id in tmdb_ids_to_create
     ]
-    db_movies = await asyncio.gather(*coros)
 
     requested_movies = existing_movies + db_movies
 

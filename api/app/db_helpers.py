@@ -21,7 +21,6 @@ async def get_or_create(session: AsyncSession, model: SQLModelMetaclass, **kwarg
         instance = model(**kwargs)
         session.add(instance)
         logger.info(f"Created {model.__name__}: {kwargs}")
-        # !possible race condition with session.flush(): Session is already flushing
         await session.flush()
         return instance
 

@@ -5,6 +5,11 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 
 database_conn_str = "sqlite+aiosqlite:///database.sqlite"
 engine = create_async_engine(database_conn_str, echo=False)
+async_session_factory = sessionmaker(
+    engine,
+    class_=AsyncSession,  # pyright: ignore [reportGeneralTypeIssues]
+    expire_on_commit=False,
+)
 
 
 # todo: replace with Alembic
@@ -14,11 +19,5 @@ async def create_db_and_tables():
 
 
 async def get_session():
-    async_session_factory = sessionmaker(
-        engine,
-        class_=AsyncSession,  # pyright: ignore [reportGeneralTypeIssues]
-        expire_on_commit=False,
-    )
-
     async with async_session_factory() as session:
         yield session
