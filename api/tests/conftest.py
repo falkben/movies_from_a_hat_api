@@ -151,6 +151,7 @@ async def mocked_TMDB_movie_results(request, respx_mock):
     movies_data = {
         "115": json.load(open(file.parent / "test_data" / "115.json")),
         "550": json.load(open(file.parent / "test_data" / "550.json")),
+        "6978": json.load(open(file.parent / "test_data" / "6978.json")),
     }
 
     with respx.mock(assert_all_called=False) as respx_mock:

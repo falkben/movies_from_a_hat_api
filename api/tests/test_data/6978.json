@@ -1,0 +1,222 @@
+{
+  "adult": false,
+  "backdrop_path": "/wb9HmFqa7TOWmvIRzJstdkjzOkG.jpg",
+  "belongs_to_collection": null,
+  "budget": 25000000,
+  "genres": [
+    { "id": 28, "name": "Action" },
+    { "id": 12, "name": "Adventure" },
+    { "id": 35, "name": "Comedy" },
+    { "id": 14, "name": "Fantasy" }
+  ],
+  "homepage": "http://www.theofficialjohncarpenter.com/big-trouble-in-little-china/",
+  "id": 6978,
+  "imdb_id": "tt0090728",
+  "original_language": "en",
+  "original_title": "Big Trouble in Little China",
+  "overview": "When trucker Jack Burton agreed to take his friend, Wang Chi, to pick up his fiancee at the airport, he never expected to get involved in a supernatural battle between good and evil. Wang's fiancee has emerald green eyes, which make her a perfect target for immortal sorcerer Lo Pan—who must marry a girl with green eyes so he can regain his physical form.",
+  "popularity": 23.523,
+  "poster_path": "/gI2Qs1yTTj3NcESJyttCkbmJ4k9.jpg",
+  "production_companies": [
+    {
+      "id": 25,
+      "logo_path": "/qZCc1lty5FzX30aOCVRBLzaVmcp.png",
+      "name": "20th Century Fox",
+      "origin_country": "US"
+    },
+    {
+      "id": 965,
+      "logo_path": null,
+      "name": "TAFT Entertainment Pictures",
+      "origin_country": ""
+    }
+  ],
+  "production_countries": [
+    { "iso_3166_1": "US", "name": "United States of America" }
+  ],
+  "release_date": "1986-05-30",
+  "revenue": 11000000,
+  "runtime": 99,
+  "spoken_languages": [
+    {
+      "english_name": "Cantonese",
+      "iso_639_1": "cn",
+      "name": "广州话 / 廣州話"
+    },
+    { "english_name": "English", "iso_639_1": "en", "name": "English" }
+  ],
+  "status": "Released",
+  "tagline": "Adventure doesn't come any bigger!",
+  "title": "Big Trouble in Little China",
+  "video": false,
+  "vote_average": 7.211,
+  "vote_count": 2459,
+  "release_dates": {
+    "results": [
+      {
+        "iso_3166_1": "FR",
+        "release_dates": [
+          {
+            "certification": "U",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1986-09-03T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "",
+            "iso_639_1": null,
+            "note": "Disney+",
+            "release_date": "2021-02-23T00:00:00.000Z",
+            "type": 4
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "IE",
+        "release_dates": [
+          {
+            "certification": "15",
+            "iso_639_1": null,
+            "note": "",
+            "release_date": "1986-11-28T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "AU",
+        "release_dates": [
+          {
+            "certification": "M",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1986-07-01T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "GR",
+        "release_dates": [
+          {
+            "certification": "PG",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1996-09-26T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "IT",
+        "release_dates": [
+          {
+            "certification": "T",
+            "iso_639_1": null,
+            "note": "",
+            "release_date": "1986-09-05T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "PT",
+        "release_dates": [
+          {
+            "certification": "M/12",
+            "iso_639_1": "",
+            "release_date": "1986-11-14T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "US",
+        "release_dates": [
+          {
+            "certification": "PG-13",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1986-05-30T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "NL",
+        "release_dates": [
+          {
+            "certification": "12",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1986-09-04T00:00:00.000Z",
+            "type": 3
+          },
+          {
+            "certification": "12",
+            "iso_639_1": "",
+            "note": "DVD",
+            "release_date": "2006-03-01T00:00:00.000Z",
+            "type": 5
+          },
+          {
+            "certification": "12",
+            "iso_639_1": "",
+            "note": "SBS 6",
+            "release_date": "2002-07-06T00:00:00.000Z",
+            "type": 6
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "BR",
+        "release_dates": [
+          {
+            "certification": "12",
+            "iso_639_1": "pt",
+            "note": "",
+            "release_date": "1986-10-23T00:00:00.000Z",
+            "type": 6
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "HU",
+        "release_dates": [
+          {
+            "certification": "12",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1988-07-28T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "GB",
+        "release_dates": [
+          {
+            "certification": "15",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1986-11-15T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      },
+      {
+        "iso_3166_1": "DE",
+        "release_dates": [
+          {
+            "certification": "16",
+            "iso_639_1": "",
+            "note": "",
+            "release_date": "1986-09-17T00:00:00.000Z",
+            "type": 3
+          }
+        ]
+      }
+    ]
+  }
+}
