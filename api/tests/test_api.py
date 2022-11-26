@@ -232,9 +232,9 @@ def test_search_movies_tmdb_down(
 def test_create_from_tmdb(
     client: TestClient, mocked_TMDB_movie_results, mocked_TMDB_config_req
 ):
-    resp = client.post("/tmdb_movie", params={"tmdb_ids": [DUDE_DATA["tmdb_id"]]})
+    resp = client.post("/tmdb_movie", json={"tmdb_ids": [DUDE_DATA["tmdb_id"]]})
     assert resp.status_code == 200, resp.json()
-    created_movie = resp.json()[0]
+    created_movie = resp.json()[str(DUDE_DATA["tmdb_id"])]
     assert created_movie["title"] == DUDE_DATA["title"]
     assert created_movie["runtime"] == DUDE_DATA["runtime"]
     assert created_movie["updated_at"] is None
@@ -244,7 +244,7 @@ def test_create_from_tmdb(
 def test_create_mult_from_tmdb(
     client: TestClient, mocked_TMDB_movie_results, mocked_TMDB_config_req
 ):
-    resp = client.post("/tmdb_movie", params={"tmdb_ids": [115, 550]})
+    resp = client.post("/tmdb_movie", json={"tmdb_ids": [115, 550]})
     assert resp.status_code == 200, resp.json()
 
     resp_data = resp.json()
@@ -255,13 +255,13 @@ def test_create_mult_from_tmdb_order(
     client: TestClient, mocked_TMDB_movie_results, mocked_TMDB_config_req
 ):
     ids_sent = [115, 550]
-    resp = client.post("/tmdb_movie", params={"tmdb_ids": ids_sent})
+    resp = client.post("/tmdb_movie", json={"tmdb_ids": ids_sent})
     assert resp.status_code == 200, resp.json()
-    ids_returned = [m["tmdb_id"] for m in resp.json()]
+    ids_returned = [m["tmdb_id"] for _, m in resp.json().items()]
     assert ids_returned == ids_sent
 
     ids_sent = [550, 6978, 115]
-    resp = client.post("/tmdb_movie", params={"tmdb_ids": ids_sent})
+    resp = client.post("/tmdb_movie", json={"tmdb_ids": ids_sent})
     assert resp.status_code == 200, resp.json()
-    ids_returned = [m["tmdb_id"] for m in resp.json()]
+    ids_returned = [m["tmdb_id"] for _, m in resp.json().items()]
     assert ids_returned == ids_sent

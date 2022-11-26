@@ -2,6 +2,8 @@ import asyncio
 from datetime import date
 
 import httpx
+from fastapi import HTTPException
+from loguru import logger
 from pydantic import BaseModel, Field
 
 
@@ -50,12 +52,29 @@ class ReleaseDates(BaseModel):
 sem = asyncio.Semaphore(3)
 
 
-async def get_movie_data(tmdb_id: int, tmdb_api_url: str, tmdb_api_key: str):
+async def tmdb_search(params, api_url) -> TMDBSearchResult:
+
     async with sem:
         async with httpx.AsyncClient() as client:
-            return await client.get(
-                f"{tmdb_api_url}/movie/{tmdb_id}?api_key={tmdb_api_key}&append_to_response=release_dates"
-            )
+            resp = await client.get(f"{api_url}/search/movie", params=params)
+
+    # todo: possibly generalize error handling for re-use
+    if 400 <= resp.status_code < 500:
+        # error in user submission
+        logger.error(
+            "Error from TMDB search. Search: %s, Response: %s", params, resp.text
+        )
+        raise HTTPException(400, "Bad search params")
+
+    try:
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.error(
+            "Error from TMDB search. Search: %s, Response: %s", params, e.response.text
+        )
+        raise HTTPException(504)
+
+    return resp.json()["results"]
 
 
 def get_rating_from_release_dates(release_dates: ReleaseDates) -> str | None:
@@ -69,3 +88,26 @@ def get_rating_from_release_dates(release_dates: ReleaseDates) -> str | None:
         for release in result.release_dates[::-1]:
             if release.certification:
                 return release.certification
+
+
+async def get_movie_data(
+    tmdb_id: int, tmdb_api_url: str, tmdb_api_key: str
+) -> tuple[TMDBMovieResult, str | None, list[str]]:
+    async with sem:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{tmdb_api_url}/movie/{tmdb_id}?api_key={tmdb_api_key}&append_to_response=release_dates"
+            )
+
+            # todo: handle errors
+
+            tmdb_data = resp.json()
+            movie_data = TMDBMovieResult(**tmdb_data)
+
+            release_dates = ReleaseDates(**tmdb_data.get("release_dates"))
+            rating = get_rating_from_release_dates(release_dates)
+
+            genres_data = tmdb_data.get("genres")
+            genres = [g["name"] for g in genres_data]
+
+            return movie_data, rating, genres

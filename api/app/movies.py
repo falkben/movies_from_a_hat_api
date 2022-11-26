@@ -1,5 +1,6 @@
-import httpx
-from fastapi import APIRouter, Body, Depends, HTTPException, Query
+import asyncio
+
+from fastapi import APIRouter, Body, Depends, Query
 from loguru import logger
 from sqlalchemy.future import select
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -7,13 +8,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from app import db, tables
 from app.config import Settings, get_settings
 from app.db_helpers import commit, get_object_or_404, get_or_create
-from app.tmdb import (
-    ReleaseDates,
-    TMDBMovieResult,
-    TMDBSearchResult,
-    get_movie_data,
-    get_rating_from_release_dates,
-)
+from app.tmdb import TMDBMovieResult, TMDBSearchResult, get_movie_data, tmdb_search
 
 router = APIRouter()
 
@@ -35,49 +30,20 @@ async def search_movies(
     if year is not None:
         params["year"] = year
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.get(f"{settings.tmdb_api_url}/search/movie", params=params)
-
-    if 400 <= resp.status_code < 500:
-        # error in user submission
-        logger.error(
-            "Error from TMDB search. Search: %s, Response: %s", params, resp.text
-        )
-        raise HTTPException(400, "Bad search params")
-
-    try:
-        resp.raise_for_status()
-    except httpx.HTTPStatusError as e:
-        logger.error(
-            "Error from TMDB search. Search: %s, Response: %s", params, e.response.text
-        )
-        raise HTTPException(504)
-
-    return resp.json()["results"]
+    return await tmdb_search(params, settings.tmdb_api_url)
 
 
 async def create_movie_from_tmdb(
-    tmdb_id: int, tmdb_api_url: str, tmdb_api_key: str, session: AsyncSession
+    tmdb_movie_result: tuple[TMDBMovieResult, str | None, list[str]],
+    session: AsyncSession,
 ) -> tables.Movie:
 
-    resp = await get_movie_data(tmdb_id, tmdb_api_url, tmdb_api_key)
-    tmdb_data = resp.json()
+    movie_data, rating, genres = tmdb_movie_result
 
-    movie_data = TMDBMovieResult(**tmdb_data)
-
-    release_dates = ReleaseDates(**tmdb_data.get("release_dates"))
-    rating = get_rating_from_release_dates(release_dates)
-
-    # if running with asyncio.gather, each task needs it's own session
-    # ! this still causes problems though as the genres are m2m and shared between movies
-    # https://github.com/sqlalchemy/sqlalchemy/discussions/8554#discussioncomment-3700871
-    # async with db.async_session_factory() as session:
-
-    # create movie instance from response data
+    # create movie instance from tmdb response data
     db_movie = tables.Movie(rating=rating, **movie_data.dict())
 
     # adding genres to movie
-    genres = [g["name"] for g in tmdb_data["genres"]]
     db_genres = [
         await get_or_create(session, tables.Genre, name=genre) for genre in genres
     ]
@@ -91,12 +57,30 @@ async def create_movie_from_tmdb(
     return db_movie
 
 
-@router.post("/tmdb_movie/", response_model=list[tables.MovieRead])
+@router.post("/tmdb_movie/", response_model=dict[str, tables.MovieRead])
 async def create_movie_from_tmdb_id_endpoint(
-    tmdb_ids: list[int] = Query([], description="List of tmdb movie ids to create"),
+    tmdb_ids: list[int] = Body(
+        [], embed=True, description="List of tmdb movie ids to create"
+    ),
     settings: Settings = Depends(get_settings),
     session: AsyncSession = Depends(db.get_session),
-):
+) -> dict[int, tables.Movie]:
+    """Create Movie by passing in tmdb id
+
+    If movie already exists, it doesn't create and returns data for that tmdb_id
+
+    Accepts a list of tmdb_ids
+
+    Returns a dict of {tmdb_id: MovieData}
+    """
+
+    # Was initially tempted to group all the work for each movie in a coroutine,
+    # and then run all the requested tmdb_ids simultaneously using asyncio.gather
+    # however, that did not work, because:
+    # 1. movies in the database share genres (and eventually other models as well)
+    # 2. if running with asyncio.gather, each task needs it's own database session
+    # Some discussion here:
+    # https://github.com/sqlalchemy/sqlalchemy/discussions/8554#discussioncomment-3700871
 
     tmdb_ids_uniq = set(tmdb_ids)
 
@@ -107,24 +91,25 @@ async def create_movie_from_tmdb_id_endpoint(
     # determine which tmdb's remain to be created
     tmdb_ids_to_create = tmdb_ids_uniq - set([m.tmdb_id for m in existing_movies])
 
-    # create movie instances for each tmdb id
-    # coros = [
-    #     create_movie_from_tmdb(tmdb_id, settings.tmdb_api_url, settings.tmdb_api_key)
-    #     for tmdb_id in tmdb_ids_to_create
-    # ]
-    # db_movies = await asyncio.gather(*coros)
-
-    db_movies = [
-        await create_movie_from_tmdb(
-            tmdb_id, settings.tmdb_api_url, settings.tmdb_api_key, session
-        )
+    # get the tmdb data for the tmdb_ids_to_create
+    coros = [
+        get_movie_data(tmdb_id, settings.tmdb_api_url, settings.tmdb_api_key)
         for tmdb_id in tmdb_ids_to_create
+    ]
+    tmdb_movie_results = await asyncio.gather(*coros)
+
+    # create the entries in the database, serially
+    db_movies = [
+        await create_movie_from_tmdb(tmdb_movie_result, session)
+        for tmdb_movie_result in tmdb_movie_results
     ]
 
     requested_movies = existing_movies + db_movies
+    db_tmdb_ids = [m.tmdb_id for m in requested_movies]
 
-    requested_movies.sort(key=lambda m: tmdb_ids.index(m.tmdb_id))
-    return requested_movies
+    return {
+        tmdb_id: requested_movies[db_tmdb_ids.index(tmdb_id)] for tmdb_id in tmdb_ids
+    }
 
 
 # todo: admin only?
@@ -133,7 +118,7 @@ async def create_movie(
     movie: tables.MovieCreate,
     genres: list[str] = Body(default=[]),
     session: AsyncSession = Depends(db.get_session),
-):
+) -> tables.Movie:
     """Create a movie by passing params
 
     Note: we will also support creating movies by passing a TMDB id
@@ -157,13 +142,17 @@ async def create_movie(
 
 
 @router.get("/movies/", response_model=list[tables.MovieRead])
-async def list_movies(session: AsyncSession = Depends(db.get_session)):
+async def list_movies(
+    session: AsyncSession = Depends(db.get_session),
+) -> list[tables.Movie]:
     movies = (await session.execute(select(tables.Movie))).scalars().unique().all()
     return movies
 
 
 @router.get("/movie/{movie_id}", response_model=tables.MovieRead)
-async def read_movie(movie_id: int, session: AsyncSession = Depends(db.get_session)):
+async def read_movie(
+    movie_id: int, session: AsyncSession = Depends(db.get_session)
+) -> tables.Movie:
     movie = await get_object_or_404(session, tables.Movie, movie_id)
     return movie
 
@@ -175,7 +164,7 @@ async def update_movie(
     movie: tables.MovieUpdate | None = None,
     genres: list[str] | None = Body(default=None),
     session: AsyncSession = Depends(db.get_session),
-):
+) -> tables.Movie:
 
     db_movie = await get_object_or_404(session, tables.Movie, movie_id)
 
@@ -202,7 +191,9 @@ async def update_movie(
 
 
 @router.delete("/movie/{movie_id}")
-async def delete_movie(movie_id: int, session: AsyncSession = Depends(db.get_session)):
+async def delete_movie(
+    movie_id: int, session: AsyncSession = Depends(db.get_session)
+) -> dict[str, bool]:
     movie = await get_object_or_404(session, tables.Movie, movie_id)
     await session.delete(movie)
     await commit(session)
