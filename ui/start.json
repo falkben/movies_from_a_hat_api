@@ -5,6 +5,11 @@
     "defaultStatus": ["🌈", "🌈"]
   },
   {
+    "command": ["npm", "run", "start.api"],
+    "title": "API Server",
+    "defaultStatus": ["🐍", "🐍"]
+  },
+  {
     "command": ["npm", "run", "docs"],
     "title": "Docs - https://localhost:4000",
     "defaultStatus": ["🗃️", "🗃️"]

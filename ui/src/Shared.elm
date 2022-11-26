@@ -12,7 +12,11 @@ module Shared exposing
 
 -}
 
+import Api
+import Data.User as User exposing (UserStatus)
 import Effect exposing (Effect)
+import Error
+import Http
 import Json.Decode
 import Route exposing (Route)
 
@@ -44,7 +48,7 @@ here. This is stuff like the current logged in user, auth tokens, translation
 information, etc.
 -}
 type alias Model =
-    {}
+    { user : UserStatus }
 
 
 {-| Runs when the app starts. It allows us to set up the initial
@@ -53,8 +57,8 @@ looking up user preferences, loading stored credentials, etc.
 -}
 init : Result Json.Decode.Error Flags -> Route () -> ( Model, Effect Msg )
 init _ _ =
-    ( {}
-    , Effect.none
+    ( { user = User.loading }
+    , Api.getConfig ConfigResponse
     )
 
 
@@ -67,7 +71,7 @@ In conjunction with [Shared.update](#update), this defines how our shared global
 state evolves as things happen in the app.
 -}
 type Msg
-    = ExampleMsgReplaceMe
+    = ConfigResponse (Result Http.Error Api.Config)
 
 
 {-| Runs whenever something emits a [Shared.Msg](#Msg). That can happen for a
@@ -81,10 +85,11 @@ number of reasons. Some examples are:
 update : Route () -> Msg -> Model -> ( Model, Effect Msg )
 update _ msg model =
     case msg of
-        ExampleMsgReplaceMe ->
-            ( model
-            , Effect.none
-            )
+        ConfigResponse (Ok config) ->
+            ( { model | user = User.updateConfig config model.user }, Effect.none )
+
+        ConfigResponse (Err err) ->
+            ( { model | user = User.fail (Error.configFailure err) }, Effect.none )
 
 
 

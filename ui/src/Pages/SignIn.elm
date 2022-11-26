@@ -1,12 +1,12 @@
 module Pages.SignIn exposing (Model, Msg, page)
 
 import Effect exposing (Effect)
-import Html exposing (div, h1, input, label, text)
-import Html.Attributes exposing (type_, value)
-import Html.Events exposing (onInput)
+import Html exposing (h1, text)
+import Html.Attributes exposing (autofocus, class)
 import Page exposing (Page)
 import Route exposing (Route)
 import Shared
+import Ui exposing (button, centerXY, formColumn, input, password, font)
 import View exposing (View)
 
 
@@ -73,15 +73,21 @@ view : Model -> View Msg
 view model =
     { title = "Sign In"
     , body =
-        [ h1 [] [ text "Movies From A Hat" ]
-        , div []
-            [ label []
-                [ div [] [ text "Username" ]
-                , input [ value model.username, onInput UsernameInput, type_ "text" ] []
-                ]
-            , label []
-                [ div [] [ text "Password" ]
-                , input [ value model.password, onInput PasswordInput, type_ "text" ] []
+        [ centerXY [ class "-mt-24" ]
+            [ h1 [ font.heading, class "text-3xl mb-8" ]
+                [ text "Movies From A Hat" ]
+            , formColumn []
+                [ input [ autofocus True, class "w-full" ]
+                    { label = text "Username"
+                    , value = model.username
+                    , onInput = UsernameInput
+                    }
+                , password [ class "w-full" ]
+                    { label = text "Password"
+                    , value = model.password
+                    , onInput = PasswordInput
+                    }
+                , button [] [ text "Sign In" ]
                 ]
             ]
         ]
