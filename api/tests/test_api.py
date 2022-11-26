@@ -265,3 +265,9 @@ def test_create_mult_from_tmdb_order(
     assert resp.status_code == 200, resp.json()
     ids_returned = [m["tmdb_id"] for _, m in resp.json().items()]
     assert ids_returned == ids_sent
+
+
+def test_create_from_tmdb_empty(client: TestClient, mocked_TMDB_config_req):
+    resp = client.post("/tmdb_movie", json={"tmdb_ids": []})
+    assert resp.status_code == 200, resp.json()
+    assert resp.json() == {}
