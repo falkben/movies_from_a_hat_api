@@ -136,7 +136,7 @@ async def create_movie(
     await commit(session)
     await session.refresh(db_movie)
 
-    logger.info(f"Created movie: {db_movie.dict()}")
+    logger.info("Created movie: {}", db_movie.dict())
 
     return db_movie
 
@@ -186,7 +186,7 @@ async def update_movie(
         await commit(session)
         await session.refresh(db_movie)
 
-        logger.info(f"Updated movie: {db_movie.dict()}")
+        logger.info("Updated movie: {}", db_movie.dict())
     return db_movie
 
 
@@ -198,5 +198,5 @@ async def delete_movie(
     await session.delete(movie)
     await commit(session)
 
-    logger.info(f"Deleted movie: {movie.dict()}")
+    logger.info("Deleted movie: {}", movie.dict())
     return {"ok": True}

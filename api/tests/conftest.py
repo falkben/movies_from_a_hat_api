@@ -4,9 +4,11 @@ from unittest.mock import patch
 
 import pytest
 import respx
+from _pytest.logging import LogCaptureFixture
 from faker import Faker
 from fastapi.testclient import TestClient
 from httpx import Response
+from loguru import logger
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import Engine
 from sqlalchemy.orm import sessionmaker
@@ -17,6 +19,18 @@ from sqlmodel.pool import StaticPool
 from app import config
 from app.api import app
 from app.db import get_session
+
+
+@pytest.fixture
+def caplog(caplog: LogCaptureFixture):
+    """Allows pytest caplog to be able to see loguru
+
+    https://loguru.readthedocs.io/en/stable/resources/migration.html#making-things-work-with-pytest-and-caplog
+    """
+
+    handler_id = logger.add(caplog.handler, format="{message}")
+    yield caplog
+    logger.remove(handler_id)
 
 
 @pytest.fixture(autouse=True)
@@ -145,7 +159,7 @@ async def mocked_TMDB_config_req(respx_mock):
 
 
 @pytest.fixture
-async def mocked_TMDB_movie_results(request, respx_mock):
+async def mocked_TMDB_movie_results(request):
     # test data location relative to the test file
     file = pathlib.Path(request.node.fspath.strpath)
     movies_data = {
