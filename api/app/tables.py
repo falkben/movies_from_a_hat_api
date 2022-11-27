@@ -23,6 +23,8 @@ class GenreMovieLink(SQLModel, table=True):
 
 
 class Genre(SQLModel, table=True):
+    __table_args__ = (UniqueConstraint("name"),)
+
     id: int | None = Field(default=None, primary_key=True)
     name: str
     movies: list["Movie"] = Relationship(

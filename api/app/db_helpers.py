@@ -20,7 +20,7 @@ async def get_or_create(session: AsyncSession, model: SQLModelMetaclass, **kwarg
     else:
         instance = model(**kwargs)
         session.add(instance)
-        logger.info(f"Created {model.__name__}: {kwargs}")
+        logger.info("Created {}: {}", model.__name__, kwargs)
         await session.flush()
         return instance
 
@@ -34,7 +34,7 @@ async def commit(session: AsyncSession):
     try:
         await session.commit()
     except sqlalchemy.exc.StatementError as exc:
-        logger.error(f"Exception during session.commit(): {exc}")
+        logger.error("Exception during session.commit(): {}", exc)
         raise HTTPException(
             422,
             detail="Database error occurred, check params.",

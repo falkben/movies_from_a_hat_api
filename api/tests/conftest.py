@@ -1,10 +1,15 @@
+import json
+import pathlib
 from unittest.mock import patch
 
 import pytest
 import respx
+from _pytest.logging import LogCaptureFixture
 from faker import Faker
 from fastapi.testclient import TestClient
 from httpx import Response
+from loguru import logger
+from respx.patterns import M
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import Engine
 from sqlalchemy.orm import sessionmaker
@@ -15,6 +20,20 @@ from sqlmodel.pool import StaticPool
 from app import config
 from app.api import app
 from app.db import get_session
+
+
+@pytest.fixture
+def caplog(caplog: LogCaptureFixture):
+    """Allows pytest's caplog to work by adding a new handler on caplog
+
+    Note: this does not match the application's handler exactly.
+
+    https://loguru.readthedocs.io/en/stable/resources/migration.html#making-things-work-with-pytest-and-caplog
+    """
+
+    handler_id = logger.add(caplog.handler, format="{message}")
+    yield caplog
+    logger.remove(handler_id)
 
 
 @pytest.fixture(autouse=True)
@@ -137,6 +156,44 @@ async def mocked_TMDB_config_req(respx_mock):
     with respx.mock(assert_all_called=False) as respx_mock:
         respx_mock.get(f"{config.TMDB_API_URL}/configuration").mock(
             return_value=Response(200, json=mocked_tmdb_config_data)
+        )
+
+        yield respx_mock
+
+
+@pytest.fixture(name="settings")
+async def settings_fixture(mocked_TMDB_config_req):
+    yield config.get_settings()
+
+
+@pytest.fixture
+async def mocked_TMDB_movie_results(request):
+    # test data location relative to the test file
+    file = pathlib.Path(request.node.fspath.strpath)
+    movies_data = {
+        "115": json.load(open(file.parent / "test_data" / "115.json")),
+        "550": json.load(open(file.parent / "test_data" / "550.json")),
+        "6978": json.load(open(file.parent / "test_data" / "6978.json")),
+    }
+
+    with respx.mock(assert_all_called=False) as respx_mock:
+        for tmdb_id, movie_data in movies_data.items():
+            respx_mock.get(f"{config.TMDB_API_URL}/movie/{tmdb_id}").mock(
+                return_value=Response(200, json=movie_data)
+            )
+
+        # for all others -- return 404
+        # For M instance usage, see: https://lundberg.github.io/respx/api/#m
+        pattern = M(url__regex=rf"{config.TMDB_API_URL}/movie/*")
+        respx_mock.route(pattern).mock(
+            return_value=Response(
+                404,
+                json={
+                    "success": False,
+                    "status_code": 34,
+                    "status_message": "The resource you requested could not be found.",
+                },
+            )
         )
 
         yield respx_mock
