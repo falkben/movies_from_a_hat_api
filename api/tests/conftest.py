@@ -9,6 +9,7 @@ from faker import Faker
 from fastapi.testclient import TestClient
 from httpx import Response
 from loguru import logger
+from respx.patterns import M
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.future import Engine
 from sqlalchemy.orm import sessionmaker
@@ -23,7 +24,9 @@ from app.db import get_session
 
 @pytest.fixture
 def caplog(caplog: LogCaptureFixture):
-    """Allows pytest caplog to be able to see loguru
+    """Allows pytest's caplog to work by adding a new handler on caplog
+
+    Note: this does not match the application's handler exactly.
 
     https://loguru.readthedocs.io/en/stable/resources/migration.html#making-things-work-with-pytest-and-caplog
     """
@@ -158,6 +161,11 @@ async def mocked_TMDB_config_req(respx_mock):
         yield respx_mock
 
 
+@pytest.fixture(name="settings")
+async def settings_fixture(mocked_TMDB_config_req):
+    yield config.get_settings()
+
+
 @pytest.fixture
 async def mocked_TMDB_movie_results(request):
     # test data location relative to the test file
@@ -173,5 +181,19 @@ async def mocked_TMDB_movie_results(request):
             respx_mock.get(f"{config.TMDB_API_URL}/movie/{tmdb_id}").mock(
                 return_value=Response(200, json=movie_data)
             )
+
+        # for all others -- return 404
+        # For M instance usage, see: https://lundberg.github.io/respx/api/#m
+        pattern = M(url__regex=rf"{config.TMDB_API_URL}/movie/*")
+        respx_mock.route(pattern).mock(
+            return_value=Response(
+                404,
+                json={
+                    "success": False,
+                    "status_code": 34,
+                    "status_message": "The resource you requested could not be found.",
+                },
+            )
+        )
 
         yield respx_mock

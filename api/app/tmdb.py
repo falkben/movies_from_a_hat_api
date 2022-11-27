@@ -1,10 +1,33 @@
 import asyncio
+import re
+import sys
 from datetime import date
 
 import httpx
 from fastapi import HTTPException
 from loguru import logger
-from pydantic import BaseModel, Field
+from loguru._defaults import LOGURU_FORMAT
+from pydantic import BaseModel, Field, ValidationError
+
+
+def obfuscate_message(message: str):
+    """Obfuscate sensitive information."""
+    result = re.sub(r"api_key=[a-zA-Z0-9]*", "api_key=xxxxxx", message)
+    return result
+
+
+def formatter(record):
+    record["extra"]["obfuscated_message"] = obfuscate_message(record["message"])
+
+    new_format = LOGURU_FORMAT.replace("message", "extra[obfuscated_message]")
+
+    # when using a callable it seems we need to add a terminator to the message
+    return new_format + "\n"
+
+
+# replace the default handler with one that obfuscates the api key
+logger.remove(0)
+logger.add(sys.stderr, colorize=True, format=formatter)
 
 
 class TMDBSearchResult(BaseModel):
@@ -24,9 +47,9 @@ class TMDBMovieResult(BaseModel):
     title: str
     release_date: date
     runtime: int
-    imdb_id: str
-    poster: str = Field(..., alias="poster_path")
-    adult: bool
+    imdb_id: str | None = None
+    poster: str | None = Field(None, alias="poster_path")
+    adult: bool = False
 
 
 class ReleaseDate(BaseModel):
@@ -65,7 +88,7 @@ def resp_error_handling(resp: httpx.Response):
             resp.request,
             resp,
         )
-        raise HTTPException(400, "Bad search params")
+        raise HTTPException(resp.status_code, "Bad search params")
 
     try:
         resp.raise_for_status()
@@ -114,9 +137,19 @@ async def get_movie_data(
             resp_error_handling(resp)
 
             tmdb_data = resp.json()
-            movie_data = TMDBMovieResult(**tmdb_data)
-
-            release_dates = ReleaseDates(**tmdb_data.get("release_dates"))
+            try:
+                movie_data = TMDBMovieResult(**tmdb_data)
+            except ValidationError:
+                logger.error("Error parsing tmdb movie data response for {}", tmdb_data)
+                raise HTTPException(500)
+            try:
+                release_dates = ReleaseDates(**tmdb_data.get("release_dates"))
+            except ValidationError:
+                logger.error(
+                    "Error parsing tmdb release dates for {}",
+                    tmdb_data.get("release_dates"),
+                )
+                raise HTTPException(500)
             rating = get_rating_from_release_dates(release_dates)
 
             genres_data = tmdb_data.get("genres")

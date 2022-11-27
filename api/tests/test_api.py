@@ -213,7 +213,7 @@ def test_search_movies_not_found(
     )
     tmdb_route.return_value = httpx.Response(404)
     resp = client.get("/search_movies/", params={"query": "big"})
-    assert resp.status_code == 400
+    assert resp.status_code == 404
     assert resp.json() == {"detail": "Bad search params"}
 
 
@@ -271,3 +271,11 @@ def test_create_from_tmdb_empty(client: TestClient, mocked_TMDB_config_req):
     resp = client.post("/tmdb_movie", json={"tmdb_ids": []})
     assert resp.status_code == 200, resp.json()
     assert resp.json() == {}
+
+
+def test_create_from_tmdb_not_found(
+    client: TestClient, mocked_TMDB_movie_results, mocked_TMDB_config_req
+):
+
+    resp = client.post("/tmdb_movie", json={"tmdb_ids": [0]})
+    assert resp.status_code == 404, resp.json()

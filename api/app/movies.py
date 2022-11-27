@@ -54,6 +54,8 @@ async def create_movie_from_tmdb(
     await commit(session)
     await session.refresh(db_movie)
 
+    logger.info("Created movie: {}", db_movie.dict())
+
     return db_movie
 
 
