@@ -6,6 +6,8 @@ from sqlalchemy import CheckConstraint, Column, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.config import get_settings
+
 # todo: Users
 # todo: Groups (m2m w/ Users if users can belong to many groups)
 # todo: Watched (date) is M2M with Groups & Movies/Users & Movies
@@ -108,6 +110,12 @@ class MovieRead(MovieBase):
     created_at: datetime
     updated_at: datetime | None
     genres: list[Genre] = []
+
+    @validator("poster")
+    def full_poster_path(value):
+        """Return the FULL poster url at the smallest size"""
+        settings = get_settings()
+        return f"{settings.tmdb_base_path}{settings.tmdb_poster_sizes[0]}{value}"
 
 
 class MovieUpdate(MovieBase):

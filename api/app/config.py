@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     tmdb_api_url: str = TMDB_API_URL
     tmdb_api_key: str = Field(..., env="TMDB_API_TOKEN")
     tmdb_base_path: HttpUrl | None = None
+    tmdb_poster_sizes: list[str] | None = None
 
     @validator("tmdb_base_path", always=True)
     def set_tmdb_base_path(cls, v, values):
@@ -22,15 +23,28 @@ class Settings(BaseSettings):
         # get configuration for poster base_url (e.g.: https://image.tmdb.org/t/p/)
         #  https://api.themoviedb.org/3/configuration?api_key=<<api_key>>
 
-        tmdb_config_url = f"{values['tmdb_api_url']}/configuration"
-        config_resp = httpx.get(
-            tmdb_config_url, params={"api_key": values["tmdb_api_key"]}
-        )
+        config_resp = get_tmdb_config(values["tmdb_api_url"], values["tmdb_api_key"])
         return config_resp.json()["images"]["secure_base_url"]
+
+    @validator("tmdb_poster_sizes", always=True)
+    def set_tmdb_poster_sizes(cls, v, values):
+        """Assign the tmdb_poster_sizes"""
+
+        # same comments as with the tmdb_base_path
+
+        config_resp = get_tmdb_config(values["tmdb_api_url"], values["tmdb_api_key"])
+        return config_resp.json()["images"]["poster_sizes"]
 
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
+
+
+@lru_cache
+def get_tmdb_config(api_url, api_key):
+    tmdb_config_url = f"{api_url}/configuration"
+    config_resp = httpx.get(tmdb_config_url, params={"api_key": api_key})
+    return config_resp
 
 
 @lru_cache
