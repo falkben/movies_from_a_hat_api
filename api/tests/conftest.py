@@ -109,7 +109,6 @@ async def client_fixture(session: Session):
 
 @pytest.fixture
 async def mocked_TMDB():
-
     fake = Faker()
     fake.set_arguments("title", {"max_nb_chars": 50})
     fake.set_arguments("overview", {"nb_words": 30})
@@ -140,7 +139,6 @@ async def mocked_TMDB():
 
 @pytest.fixture
 async def mocked_TMDB_config_req(respx_mock):
-
     mocked_tmdb_config_data = {
         "images": {
             "base_url": "http://image.tmdb.org/t/p/",
