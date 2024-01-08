@@ -102,7 +102,6 @@ def resp_error_handling(resp: httpx.Response):
 
 
 async def tmdb_search(params, api_url) -> TMDBSearchResult:
-
     async with sem:
         async with httpx.AsyncClient() as client:
             resp = await client.get(f"{api_url}/search/movie", params=params)

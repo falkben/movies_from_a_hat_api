@@ -20,7 +20,6 @@ async def search_movies(
     page: int = 1,
     settings: Settings = Depends(get_settings),
 ):
-
     params = {
         "api_key": settings.tmdb_api_key,
         "query": query,
@@ -37,7 +36,6 @@ async def create_movie_from_tmdb(
     tmdb_movie_result: tuple[TMDBMovieResult, str | None, list[str]],
     session: AsyncSession,
 ) -> tables.Movie:
-
     movie_data, rating, genres = tmdb_movie_result
 
     # create movie instance from tmdb response data
@@ -167,7 +165,6 @@ async def update_movie(
     genres: list[str] | None = Body(default=None),
     session: AsyncSession = Depends(db.get_session),
 ) -> tables.Movie:
-
     db_movie = await get_object_or_404(session, tables.Movie, movie_id)
 
     if movie:

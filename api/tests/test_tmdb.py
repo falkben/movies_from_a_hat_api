@@ -25,9 +25,7 @@ test_routes = {
 
 @pytest.fixture
 def mock_urls():
-
     with respx.mock(assert_all_called=False) as respx_mock:
-
         for url, method, status_code in test_routes.values():
             route = respx_mock.request(method, url)
             route.return_value = httpx.Response(status_code)
@@ -37,7 +35,6 @@ def mock_urls():
 
 @pytest.mark.parametrize("test_route", test_routes.values())
 def test_error_handling_tmdb(test_route, mock_urls, caplog):
-
     test_url, method, status_code = test_route
 
     kwargs = {}
@@ -59,7 +56,6 @@ def test_error_handling_tmdb(test_route, mock_urls, caplog):
 
 
 async def test_get_movie_data(settings: Settings, mocked_TMDB_movie_results):
-
     movie_data, rating, genres = await get_movie_data(
         115, settings.tmdb_api_url, settings.tmdb_api_key
     )
@@ -71,7 +67,6 @@ async def test_get_movie_data(settings: Settings, mocked_TMDB_movie_results):
 async def test_get_movie_data_not_found(
     settings: Settings, mocked_TMDB_movie_results, caplog
 ):
-
     with pytest.raises(HTTPException):
         await get_movie_data(0, settings.tmdb_api_url, settings.tmdb_api_key)
 

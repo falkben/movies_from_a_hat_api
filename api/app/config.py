@@ -7,7 +7,6 @@ TMDB_API_URL = "https://api.themoviedb.org/3"
 
 
 class Settings(BaseSettings):
-
     tmdb_api_url: str = TMDB_API_URL
     tmdb_api_key: str = Field(..., env="TMDB_API_TOKEN")
     tmdb_base_path: HttpUrl | None = None

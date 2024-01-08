@@ -52,7 +52,6 @@ def test_create_movie(client: TestClient):
 async def test_create_movies_same_title_diff_year(
     client: TestClient, dude_movie: Movie
 ):
-
     resp = client.post(
         "/movie/", json={"movie": DUDE_DATA | {"release_date": DIFF_DATE}}
     )
@@ -129,7 +128,6 @@ def test_create_movie_invalid(client: TestClient):
 
 
 async def test_read_movie(client: TestClient, dude_movie: Movie):
-
     resp = client.get(f"/movie/{dude_movie.id}")
     data = resp.json()
 
@@ -190,7 +188,6 @@ async def test_remove_genres(client: TestClient, dude_movie: Movie):
 async def test_delete_movie(
     session: AsyncSession, client: TestClient, dude_movie: Movie
 ):
-
     resp = client.delete(f"/movie/{dude_movie.id}")
     assert resp.status_code == 200
 
@@ -276,6 +273,5 @@ def test_create_from_tmdb_empty(client: TestClient, mocked_TMDB_config_req):
 def test_create_from_tmdb_not_found(
     client: TestClient, mocked_TMDB_movie_results, mocked_TMDB_config_req
 ):
-
     resp = client.post("/tmdb_movie", json={"tmdb_ids": [0]})
     assert resp.status_code == 404, resp.json()
